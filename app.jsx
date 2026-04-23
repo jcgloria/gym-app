@@ -72,7 +72,6 @@ function Root() {
   }
 
   if (standalone) {
-    if (typeof document !== 'undefined') document.body.style.background = TOKENS.bg;
     return (
       <div style={{ width: '100%', height: '100%', background: TOKENS.bg }}>
         <App />
