@@ -58,6 +58,7 @@ function RoutinesScreen({ nav }) {
   const [adding, setAdding] = React.useState(false);
   const [name, setName] = React.useState('');
   const [color, setColor] = React.useState('clay');
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   const lastByRoutine = React.useMemo(() => {
     const map = {};
@@ -83,16 +84,27 @@ function RoutinesScreen({ nav }) {
 
   return (
     <Screen>
-      <TopBar title="" right={
-        <button onClick={() => setAdding(true)} style={{
-          width: 34, height: 34, borderRadius: 10,
-          background: TOKENS.ink, border: 'none',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: TOKENS.bg, cursor: 'pointer', padding: 0,
-        }}>
-          <Icon.plus />
-        </button>
-      } />
+      <TopBar title=""
+        left={
+          <button onClick={() => setSettingsOpen(true)} style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: 'transparent', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: TOKENS.ink, cursor: 'pointer', padding: 0,
+          }}>
+            <Icon.settings />
+          </button>
+        }
+        right={
+          <button onClick={() => setAdding(true)} style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: TOKENS.ink, border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: TOKENS.bg, cursor: 'pointer', padding: 0,
+          }}>
+            <Icon.plus />
+          </button>
+        } />
       <div style={{ flex: 1, overflow: 'auto', paddingBottom: 20 }}>
         <LargeTitle eyebrow={weekCount > 0 ? `${weekCount} this week` : 'Let\u2019s go'}>Routines</LargeTitle>
 
@@ -169,7 +181,96 @@ function RoutinesScreen({ nav }) {
           </div>
         </div>
       </Sheet>
+
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} store={s} />
     </Screen>
+  );
+}
+
+// ─── Settings (export / import / reset) ─────────────────────
+function SettingsSheet({ open, onClose, store }) {
+  const fileRef = React.useRef(null);
+  const [msg, setMsg] = React.useState('');
+
+  const summary = `${store.exercises.length} exercise${store.exercises.length === 1 ? '' : 's'} · ${store.routines.length} routine${store.routines.length === 1 ? '' : 's'} · ${store.sessions.length} session${store.sessions.length === 1 ? '' : 's'}`;
+
+  const handleExport = async () => {
+    const json = JSON.stringify(store, null, 2);
+    const today = new Date().toISOString().slice(0, 10);
+    const filename = `gym-backup-${today}.json`;
+    const blob = new Blob([json], { type: 'application/json' });
+    const file = new File([blob], filename, { type: 'application/json' });
+
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Gym backup' });
+        return;
+      }
+    } catch (_e) { /* user cancelled or share failed — fall back */ }
+
+    // Fallback: trigger a download.
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => fileRef.current?.click();
+
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-importing the same file
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || ''));
+        if (!parsed || typeof parsed !== 'object') throw new Error('bad shape');
+        if (!confirm('Replace all current data with the contents of this backup?')) return;
+        actions.replaceAll(parsed);
+        setMsg('Imported.');
+        setTimeout(() => setMsg(''), 2000);
+      } catch (err) {
+        alert('Could not read this file. It must be a valid Gym backup JSON.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleReset = () => {
+    if (!confirm('Erase all routines, exercises, and sessions? This cannot be undone.')) return;
+    actions.resetAll();
+    setMsg('Reset.');
+    setTimeout(() => setMsg(''), 2000);
+  };
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Settings">
+      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: 12.5, color: TOKENS.muted, padding: '0 2px 4px', fontVariantNumeric: 'tabular-nums' }}>
+          {summary}
+        </div>
+
+        <button onClick={handleExport} style={menuRowStyle()}>
+          Export backup…
+        </button>
+        <button onClick={handleImportClick} style={menuRowStyle()}>
+          Import backup…
+        </button>
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} style={{ display: 'none' }} />
+
+        <div style={{ height: 4 }} />
+        <button onClick={handleReset} style={{ ...menuRowStyle(), color: TOKENS.danger }}>
+          Erase all data
+        </button>
+
+        {msg && (
+          <div style={{ textAlign: 'center', fontSize: 13, color: TOKENS.muted, paddingTop: 6 }}>{msg}</div>
+        )}
+      </div>
+    </Sheet>
   );
 }
 

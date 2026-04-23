@@ -214,6 +214,15 @@ const actions = {
     saveState(state);
     listeners.forEach(fn => fn());
   },
+  replaceAll: (next) => {
+    // Shallow-validate shape, then replace state wholesale.
+    const safe = {
+      exercises: Array.isArray(next?.exercises) ? next.exercises : [],
+      routines:  Array.isArray(next?.routines)  ? next.routines  : [],
+      sessions:  Array.isArray(next?.sessions)  ? next.sessions  : [],
+    };
+    setState(migrate(safe));
+  },
 };
 
 // ─── Selectors ───────────────────────────────────────────────

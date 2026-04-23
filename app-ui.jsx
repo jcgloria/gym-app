@@ -13,6 +13,7 @@ const Icon = {
   dumbbell: (p = {}) => <svg width="22" height="22" viewBox="0 0 22 22" fill="none" {...p}><path d="M3 8v6M5.5 6v10M16.5 6v10M19 8v6M5.5 11h11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   calendar: (p = {}) => <svg width="22" height="22" viewBox="0 0 22 22" fill="none" {...p}><rect x="3.5" y="5" width="15" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M3.5 9h15M7 3.5v3M15 3.5v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   ellipsis: (p = {}) => <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...p}><circle cx="4" cy="10" r="1.3" fill="currentColor"/><circle cx="10" cy="10" r="1.3" fill="currentColor"/><circle cx="16" cy="10" r="1.3" fill="currentColor"/></svg>,
+  settings: (p = {}) => <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...p}><circle cx="10" cy="10" r="2.6" stroke="currentColor" strokeWidth="1.4"/><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
 };
 
 // ─── Screen chrome ─────────────────────────────────────────────
@@ -26,7 +27,7 @@ function Screen({ children, style = {} }) {
   );
 }
 
-function TopBar({ title, onBack, right, subtle }) {
+function TopBar({ title, onBack, left, right, subtle }) {
   return (
     <div style={{
       paddingTop: 54, paddingBottom: 12,
@@ -38,6 +39,8 @@ function TopBar({ title, onBack, right, subtle }) {
         <button onClick={onBack} style={btnIconStyle}>
           <Icon.back />
         </button>
+      ) : left ? (
+        <div style={{ width: 34, display: 'flex', justifyContent: 'flex-start' }}>{left}</div>
       ) : <div style={{ width: 34 }} />}
       <div style={{
         flex: 1, textAlign: 'center',
