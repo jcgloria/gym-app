@@ -46,11 +46,20 @@ function App() {
   );
 }
 
-// Mount inside the iOS device frame, centered
+// Mount inside the iOS device frame for desktop preview, or full-viewport
+// when running as an installed PWA on iOS / Android.
+function isStandalone() {
+  if (typeof window === 'undefined') return false;
+  return window.navigator.standalone === true
+    || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+}
+
 function Root() {
   React.useEffect(() => {
     applyTheme({ dark: false, accent: 'ink' });
   }, []);
+
+  const [standalone] = React.useState(isStandalone);
 
   const [size, setSize] = React.useState(() => computeSize());
   React.useEffect(() => {
@@ -64,6 +73,14 @@ function Root() {
     const pad = 24;
     const scale = Math.min(1, (w - pad * 2) / targetW, (h - pad * 2) / targetH);
     return { scale, targetW, targetH };
+  }
+
+  if (standalone) {
+    return (
+      <div style={{ width: '100%', height: '100%', background: TOKENS.bg }}>
+        <App />
+      </div>
+    );
   }
 
   return (
