@@ -10,7 +10,7 @@ function WorkoutScreen({ nav, sessionId }) {
   if (!session) return <Screen><TopBar title="Not found" onBack={() => nav.pop()} /></Screen>;
 
   const routine = selectors.routineById(s, session.routineId);
-  const c = getRoutineColor(routine?.color);
+  const c = getRoutineColor(routine?.color || session.color);
   const [active, setActive] = React.useState(session.entries[0]?.exerciseId || null);
   const [finishOpen, setFinishOpen] = React.useState(false);
 
@@ -508,14 +508,19 @@ function HistoryScreen({ nav }) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  // Map day -> whether there was a workout. All workout dots use ink.
+  // Map day -> first session's routine color. Sessions keep their color
+  // even after the routine is deleted (stamped on save / delete).
   const dayToColor = React.useMemo(() => {
     const m = {};
     s.sessions.forEach(x => {
       const d = new Date(x.date);
       if (d.getFullYear() !== year || d.getMonth() !== month) return;
       const day = d.getDate();
-      if (!m[day]) m[day] = TOKENS.ink;
+      if (!m[day]) {
+        const r = selectors.routineById(s, x.routineId);
+        const colorId = x.color || r?.color;
+        m[day] = colorId ? getRoutineColor(colorId).base : TOKENS.lineStrong;
+      }
     });
     return m;
   }, [s.sessions, year, month]);
@@ -579,7 +584,7 @@ function HistoryScreen({ nav }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
               {cells.map((d, i) => {
                 if (!d) return <div key={i} />;
-                const hasWorkout = Boolean(dayToColor[d]);
+                const dayColor = dayToColor[d];
                 const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
                 return (
                   <div key={i} style={{
@@ -589,11 +594,11 @@ function HistoryScreen({ nav }) {
                   }}>
                     <div style={{
                       width: 30, height: 30, borderRadius: 999,
-                      background: hasWorkout ? TOKENS.ink : 'transparent',
-                      color: hasWorkout ? TOKENS.bg : (isToday ? TOKENS.accentInk : TOKENS.ink),
-                      border: isToday && !hasWorkout ? `1.5px solid ${TOKENS.accent}` : 'none',
+                      background: dayColor || 'transparent',
+                      color: dayColor ? '#0E0E0E' : (isToday ? TOKENS.accentInk : TOKENS.ink),
+                      border: isToday && !dayColor ? `1.5px solid ${TOKENS.accent}` : 'none',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: hasWorkout ? 700 : 500,
+                      fontWeight: dayColor ? 700 : 500,
                     }}>{d}</div>
                   </div>
                 );
@@ -618,7 +623,7 @@ function HistoryScreen({ nav }) {
           <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {sorted.map(sess => {
               const routine = selectors.routineById(s, sess.routineId);
-              const c = getRoutineColor(routine?.color);
+              const c = getRoutineColor(routine?.color || sess.color);
               const totalSets = sess.entries.reduce((a, e) => a + e.sets.length, 0);
               const volume = sess.entries.reduce((a, e) =>
                 a + e.sets.reduce((b, st) => b + st.weight * st.reps, 0), 0);
@@ -669,7 +674,7 @@ function SessionDetailScreen({ nav, sessionId }) {
   const sess = selectors.sessionById(s, sessionId);
   if (!sess) return <Screen><TopBar title="Not found" onBack={() => nav.pop()} /></Screen>;
   const routine = selectors.routineById(s, sess.routineId);
-  const c = getRoutineColor(routine?.color);
+  const c = getRoutineColor(routine?.color || sess.color);
   const totalSets = sess.entries.reduce((a, e) => a + e.sets.length, 0);
   const volume = sess.entries.reduce((a, e) =>
     a + e.sets.reduce((b, st) => b + st.weight * st.reps, 0), 0);

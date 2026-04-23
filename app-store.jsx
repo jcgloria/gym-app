@@ -107,7 +107,17 @@ const actions = {
     setState(s => ({ ...s, routines: s.routines.map(r => r.id === id ? { ...r, color } : r) }));
   },
   deleteRoutine: (id) => {
-    setState(s => ({ ...s, routines: s.routines.filter(r => r.id !== id) }));
+    setState(s => {
+      const r = s.routines.find(x => x.id === id);
+      const stampedColor = r?.color;
+      return {
+        ...s,
+        routines: s.routines.filter(x => x.id !== id),
+        sessions: s.sessions.map(x =>
+          x.routineId === id && !x.color && stampedColor ? { ...x, color: stampedColor } : x
+        ),
+      };
+    });
   },
   setRoutineExercises: (routineId, exerciseIds) => {
     setState(s => ({
@@ -136,6 +146,7 @@ const actions = {
       id: uid(),
       date: new Date().toISOString(),
       routineId,
+      color: routine?.color,
       entries: (routine?.exerciseIds || []).map(eid => ({ exerciseId: eid, sets: [] })),
     };
     setState(s => ({ ...s, sessions: [...s.sessions, session] }));
