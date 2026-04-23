@@ -54,74 +54,10 @@ function saveState(s) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
 }
 
-// Seed with a light example dataset so the app isn't empty on first load.
-// Marked so we only seed once.
+// No seed data — app starts empty.
 function maybeSeed(s) {
-  if (localStorage.getItem(STORAGE_KEY + ':seeded')) return s;
   localStorage.setItem(STORAGE_KEY + ':seeded', '1');
-  if (s.exercises.length || s.routines.length || s.sessions.length) return s;
-
-  const ex = [
-    { id: uid(), name: 'Barbell Back Squat' },
-    { id: uid(), name: 'Bench Press' },
-    { id: uid(), name: 'Deadlift' },
-    { id: uid(), name: 'Overhead Press' },
-    { id: uid(), name: 'Pull-Up' },
-    { id: uid(), name: 'Barbell Row' },
-    { id: uid(), name: 'Romanian Deadlift' },
-    { id: uid(), name: 'Incline Dumbbell Press' },
-  ];
-  const [squat, bench, dead, ohp, pullup, row, rdl, incline] = ex;
-
-  const routines = [
-    { id: uid(), name: 'Day A — Push',  color: 'clay',     exerciseIds: [bench.id, ohp.id, incline.id] },
-    { id: uid(), name: 'Day B — Pull',  color: 'mist',     exerciseIds: [dead.id, pullup.id, row.id] },
-    { id: uid(), name: 'Day C — Legs',  color: 'sand',     exerciseIds: [squat.id, rdl.id] },
-  ];
-
-  // Add a few historical sessions so "last 3 sessions" has something to show
-  const today = new Date();
-  const dateOffset = (days) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - days);
-    return d.toISOString();
-  };
-
-  const sessions = [
-    {
-      id: uid(), date: dateOffset(9), routineId: routines[0].id,
-      entries: [
-        { exerciseId: bench.id, sets: [{ weight: 135, reps: 8 }, { weight: 155, reps: 6 }, { weight: 155, reps: 5 }] },
-        { exerciseId: ohp.id, sets: [{ weight: 85, reps: 8 }, { weight: 85, reps: 7 }] },
-        { exerciseId: incline.id, sets: [{ weight: 50, reps: 10 }, { weight: 55, reps: 8 }] },
-      ],
-    },
-    {
-      id: uid(), date: dateOffset(6), routineId: routines[0].id,
-      entries: [
-        { exerciseId: bench.id, sets: [{ weight: 135, reps: 8 }, { weight: 155, reps: 7 }, { weight: 165, reps: 5 }] },
-        { exerciseId: ohp.id, sets: [{ weight: 85, reps: 8 }, { weight: 90, reps: 6 }] },
-        { exerciseId: incline.id, sets: [{ weight: 55, reps: 9 }, { weight: 55, reps: 8 }] },
-      ],
-    },
-    {
-      id: uid(), date: dateOffset(3), routineId: routines[0].id,
-      entries: [
-        { exerciseId: bench.id, sets: [{ weight: 140, reps: 8 }, { weight: 160, reps: 6 }, { weight: 165, reps: 6 }] },
-        { exerciseId: ohp.id, sets: [{ weight: 90, reps: 7 }, { weight: 90, reps: 6 }] },
-        { exerciseId: incline.id, sets: [{ weight: 55, reps: 10 }, { weight: 60, reps: 7 }] },
-      ],
-    },
-    {
-      id: uid(), date: dateOffset(5), routineId: routines[2].id,
-      entries: [
-        { exerciseId: squat.id, sets: [{ weight: 185, reps: 8 }, { weight: 205, reps: 6 }, { weight: 215, reps: 5 }] },
-        { exerciseId: rdl.id, sets: [{ weight: 155, reps: 10 }, { weight: 155, reps: 10 }] },
-      ],
-    },
-  ];
-
-  return { exercises: ex, routines, sessions };
+  return s;
 }
 
 // Single global store w/ React hook subscription

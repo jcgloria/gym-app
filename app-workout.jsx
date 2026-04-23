@@ -424,9 +424,9 @@ function ExercisesScreen({ nav }) {
       <TopBar title="" right={
         <button onClick={() => setAdding(true)} style={{
           width: 34, height: 34, borderRadius: 10,
-          background: getPrimaryColor().base, border: 'none',
+          background: TOKENS.ink, border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', cursor: 'pointer', padding: 0,
+          color: TOKENS.bg, cursor: 'pointer', padding: 0,
         }}><Icon.plus /></button>
       } />
       <div style={{ flex: 1, overflow: 'auto' }}>
