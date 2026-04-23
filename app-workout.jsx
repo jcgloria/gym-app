@@ -38,7 +38,7 @@ function WorkoutScreen({ nav, sessionId }) {
             height: 32, padding: '0 14px', borderRadius: 10,
             background: c.ink, color: '#fff', border: 'none',
             fontFamily: TOKENS.font, fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
-            textTransform: ctaCase(), cursor: 'pointer',
+            textTransform: 'uppercase', cursor: 'pointer',
           }}>Finish</button>
         }
       />
@@ -50,7 +50,7 @@ function WorkoutScreen({ nav, sessionId }) {
             padding: '4px 10px', borderRadius: 999, background: c.soft,
           }}>{totalSets > 0 ? `${totalSets} set${totalSets === 1 ? '' : 's'} logged` : 'In progress'}</div>
           <div style={{
-            fontSize: tweak('titleSize', 34), fontWeight: 700, letterSpacing: -1.2, lineHeight: 1.05,
+            fontSize: 34, fontWeight: 700, letterSpacing: -1.2, lineHeight: 1.05,
             color: TOKENS.ink,
           }}>{routine?.name || 'Workout'}</div>
         </div>
@@ -82,7 +82,7 @@ function WorkoutScreen({ nav, sessionId }) {
               <button onClick={() => finish(true)} style={{
                 flex: 1, height: 44, borderRadius: 12, background: TOKENS.ink,
                 color: TOKENS.bg, border: 'none', fontFamily: TOKENS.font,
-                fontSize: 14.5, fontWeight: 700, letterSpacing: 0.2, textTransform: ctaCase(),
+                fontSize: 14.5, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase',
                 cursor: 'pointer',
               }}>Save</button>
             )}
@@ -147,7 +147,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             {ex.name}
-            {allTimeBest && tweak('showPRs', true) && (
+            {allTimeBest && (
               <span style={{ color: color.ink, display: 'inline-flex', alignItems: 'center', opacity: 0.7 }}>
                 <IconStar />
               </span>
@@ -196,7 +196,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
             display: 'flex', alignItems: 'center', gap: 8, lineHeight: 1.15,
           }}>
             {ex.name}
-            {allTimeBest && tweak('showPRs', true) && (
+            {allTimeBest && (
               <span style={{ color: color.ink, display: 'inline-flex', alignItems: 'center' }} title={`PR: ${allTimeBest.weight}×${allTimeBest.reps}`}>
                 <IconStar />
               </span>
@@ -294,7 +294,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
                       <span style={{ color: TOKENS.subtle, margin: '0 8px', fontWeight: 500 }}>×</span>
                       <span>{st.reps}</span>
                     </div>
-                    {cue === 'pr' && tweak('showPRs', true) && (
+                    {cue === 'pr' && (
                       <div style={{
                         display: 'inline-flex', alignItems: 'center', gap: 3,
                         padding: '4px 8px', borderRadius: 999,
@@ -302,7 +302,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
                         fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
                       }}><IconStar /> PR</div>
                     )}
-                    {cue === 'up' && tweak('showUpCues', true) && (
+                    {cue === 'up' && (
                       <div style={{
                         display: 'inline-flex', alignItems: 'center', gap: 3,
                         padding: '4px 8px', borderRadius: 999,
@@ -343,7 +343,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
             background: (!weight || !reps) ? TOKENS.lineStrong : color.ink,
             color: (!weight || !reps) ? TOKENS.muted : '#fff', border: 'none',
             fontFamily: TOKENS.font,
-            fontSize: 14, fontWeight: 700, letterSpacing: 0.3, textTransform: ctaCase(),
+            fontSize: 14, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase',
             cursor: (!weight || !reps) ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             flexShrink: 0,
@@ -382,22 +382,6 @@ function InputPair({ label, value, onChange, integer, big }) {
           fontVariantNumeric: 'tabular-nums', padding: 0, letterSpacing: -0.5,
         }}
       />
-    </div>
-  );
-}
-
-function SetChip({ weight, reps, muted }) {
-  return (
-    <div style={{
-      padding: '5px 9px', borderRadius: 7,
-      background: muted ? TOKENS.surface : TOKENS.accentSoft,
-      border: muted ? `1px solid ${TOKENS.line}` : 'none',
-      fontSize: 12.5, fontWeight: 500, color: TOKENS.ink,
-      fontVariantNumeric: 'tabular-nums',
-    }}>
-      <span style={{ fontWeight: 700 }}>{weight}</span>
-      <span style={{ color: TOKENS.subtle, margin: '0 3px' }}>×</span>
-      <span style={{ fontWeight: 700 }}>{reps}</span>
     </div>
   );
 }
@@ -554,7 +538,7 @@ function HistoryScreen({ nav }) {
     <Screen>
       <TopBar title="" />
       <div style={{ flex: 1, overflow: 'auto', paddingBottom: 20 }}>
-        <LargeTitle eyebrow={streak > 0 && tweak('showStreak', true) ? `🔥 ${streak}-day streak` : `${s.sessions.length} workout${s.sessions.length === 1 ? '' : 's'}`}>History</LargeTitle>
+        <LargeTitle eyebrow={streak > 0 ? `🔥 ${streak}-day streak` : `${s.sessions.length} workout${s.sessions.length === 1 ? '' : 's'}`}>History</LargeTitle>
 
         <div style={{ padding: '0 16px 20px' }}>
           <Card style={{ padding: 16 }}>
@@ -703,7 +687,7 @@ function SessionDetailScreen({ nav, sessionId }) {
             padding: '4px 10px', borderRadius: 999, background: c.soft,
           }}>{fmt.dateLong(sess.date)}</div>
           <div style={{
-            fontSize: tweak('titleSize', 34), fontWeight: 700, letterSpacing: -1.2, lineHeight: 1.05,
+            fontSize: 34, fontWeight: 700, letterSpacing: -1.2, lineHeight: 1.05,
             color: TOKENS.ink,
           }}>{routine?.name || 'Workout'}</div>
         </div>

@@ -1,4 +1,4 @@
-const CACHE = 'gym-app-v5';
+const CACHE = 'gym-app-v6';
 const ASSETS = [
   './',
   './Gym%20App.html',

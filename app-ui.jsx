@@ -13,10 +13,9 @@ const Icon = {
   dumbbell: (p = {}) => <svg width="22" height="22" viewBox="0 0 22 22" fill="none" {...p}><path d="M3 8v6M5.5 6v10M16.5 6v10M19 8v6M5.5 11h11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   calendar: (p = {}) => <svg width="22" height="22" viewBox="0 0 22 22" fill="none" {...p}><rect x="3.5" y="5" width="15" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M3.5 9h15M7 3.5v3M15 3.5v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   ellipsis: (p = {}) => <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...p}><circle cx="4" cy="10" r="1.3" fill="currentColor"/><circle cx="10" cy="10" r="1.3" fill="currentColor"/><circle cx="16" cy="10" r="1.3" fill="currentColor"/></svg>,
-  drag: (p = {}) => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" {...p}><circle cx="6" cy="4" r="1" fill="currentColor"/><circle cx="10" cy="4" r="1" fill="currentColor"/><circle cx="6" cy="8" r="1" fill="currentColor"/><circle cx="10" cy="8" r="1" fill="currentColor"/><circle cx="6" cy="12" r="1" fill="currentColor"/><circle cx="10" cy="12" r="1" fill="currentColor"/></svg>,
 };
 
-// ─── Screen chrome (our own, not IOSNavBar — for more control) ──
+// ─── Screen chrome ─────────────────────────────────────────────
 function Screen({ children, style = {} }) {
   return (
     <div style={{
@@ -60,7 +59,7 @@ function LargeTitle({ children, eyebrow }) {
         }}>{eyebrow}</div>
       )}
       <div style={{
-        fontSize: tweak('titleSize', 34), fontWeight: 700, letterSpacing: -1.2,
+        fontSize: 34, fontWeight: 700, letterSpacing: -1.2,
         lineHeight: 1.05, color: TOKENS.ink,
       }}>{children}</div>
     </div>
@@ -96,19 +95,6 @@ function SecondaryButton({ children, onClick, style = {} }) {
       color: TOKENS.ink, fontFamily: TOKENS.font, fontSize: 14.5, fontWeight: 500,
       cursor: 'pointer',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-      ...style,
-    }}>{children}</button>
-  );
-}
-
-function GhostButton({ children, onClick, style = {} }) {
-  return (
-    <button onClick={onClick} style={{
-      height: 36, borderRadius: 10, padding: '0 12px',
-      background: 'transparent', border: 'none',
-      color: TOKENS.accentInk, fontFamily: TOKENS.font, fontSize: 14.5, fontWeight: 500,
-      cursor: 'pointer',
-      display: 'inline-flex', alignItems: 'center', gap: 4,
       ...style,
     }}>{children}</button>
   );
@@ -221,5 +207,5 @@ if (typeof document !== 'undefined' && !document.getElementById('gym-app-keyfram
 
 Object.assign(window, {
   Icon, Screen, TopBar, LargeTitle,
-  PrimaryButton, SecondaryButton, GhostButton, Card, TextInput, Sheet, EmptyState,
+  PrimaryButton, SecondaryButton, Card, TextInput, Sheet, EmptyState,
 });

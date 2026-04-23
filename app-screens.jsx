@@ -117,8 +117,8 @@ function RoutinesScreen({ nav }) {
                     display: 'flex',
                   }}>
                   {/* Color stripe */}
-                  <div style={{ width: tweak('routineStripeWidth', 5), background: c.base, flexShrink: 0 }} />
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: tweak('compactRows', false) ? '10px 14px 10px 12px' : '16px 16px 16px 14px' }}>
+                  <div style={{ width: 5, background: c.base, flexShrink: 0 }} />
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 16px 14px' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
                         fontSize: 17, fontWeight: 600, letterSpacing: -0.3,
@@ -142,7 +142,7 @@ function RoutinesScreen({ nav }) {
                         height: 36, borderRadius: 10, padding: '0 16px',
                         background: c.ink, color: '#fff', border: 'none',
                         fontFamily: TOKENS.font, fontSize: 13, fontWeight: 700, letterSpacing: 0.2,
-                        textTransform: ctaCase(),
+                        textTransform: 'uppercase',
                         cursor: 'pointer', flexShrink: 0,
                       }}>
                       Start
@@ -332,7 +332,7 @@ function RoutineScreen({ nav, routineId }) {
             background: exercises.length === 0 ? TOKENS.lineStrong : c.ink,
             color: exercises.length === 0 ? TOKENS.muted : '#fff', border: 'none',
             fontFamily: TOKENS.font, fontSize: 15, fontWeight: 700, letterSpacing: 0.3,
-            textTransform: ctaCase(),
+            textTransform: 'uppercase',
             cursor: exercises.length === 0 ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}>
