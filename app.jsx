@@ -75,6 +75,14 @@ function Root() {
     return { scale, targetW, targetH };
   }
 
+  React.useEffect(() => {
+    if (standalone && typeof document !== 'undefined') {
+      document.body.style.background = TOKENS.bg;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', TOKENS.bg);
+    }
+  }, [standalone]);
+
   if (standalone) {
     return (
       <div style={{ width: '100%', height: '100%', background: TOKENS.bg }}>
