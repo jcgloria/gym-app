@@ -240,35 +240,6 @@ const selectors = {
     });
     return map;
   },
-  // Returns the best (max weight) set ever for this exercise, excluding current session
-  bestSetFor: (s, exerciseId, excludeSessionId) => {
-    let best = null;
-    s.sessions.forEach(x => {
-      if (!x.finishedAt) return;
-      if (x.id === excludeSessionId) return;
-      x.entries.forEach(e => {
-        if (e.exerciseId !== exerciseId) return;
-        e.sets.forEach(st => {
-          if (!best || st.weight > best.weight || (st.weight === best.weight && st.reps > best.reps)) {
-            best = st;
-          }
-        });
-      });
-    });
-    return best;
-  },
-  // Top set (by weight) from the most recent previous session for this exercise
-  prevTopSetFor: (s, exerciseId, excludeSessionId) => {
-    const prev = s.sessions
-      .filter(x => x.finishedAt)
-      .filter(x => x.id !== excludeSessionId)
-      .filter(x => x.entries.some(e => e.exerciseId === exerciseId && e.sets.length > 0))
-      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-    if (!prev) return null;
-    const entry = prev.entries.find(e => e.exerciseId === exerciseId);
-    return entry.sets.reduce((best, st) =>
-      !best || st.weight > best.weight ? st : best, null);
-  },
 };
 
 // ─── Formatting ──────────────────────────────────────────────

@@ -1,9 +1,5 @@
 // app-workout.jsx — active workout + exercises library + history + session detail
 
-// A tiny star icon for PRs
-const IconStar = (p={}) => <svg width="12" height="12" viewBox="0 0 12 12" {...p}><path d="M6 1l1.6 3.2 3.4.5-2.5 2.4.6 3.4L6 9l-3.1 1.5.6-3.4L1 4.7l3.4-.5L6 1z" fill="currentColor"/></svg>;
-const IconUp = (p={}) => <svg width="10" height="10" viewBox="0 0 10 10" {...p}><path d="M5 2l4 5H1l4-5z" fill="currentColor"/></svg>;
-
 function WorkoutScreen({ nav, sessionId }) {
   const s = useStore();
   const session = selectors.sessionById(s, sessionId);
@@ -102,8 +98,6 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
   const s = useStore();
   const ex = selectors.exerciseById(s, entry.exerciseId);
   const prevSessions = selectors.lastSessionsFor(s, entry.exerciseId, session.id, 3);
-  const prevTop = selectors.prevTopSetFor(s, entry.exerciseId, session.id);
-  const allTimeBest = selectors.bestSetFor(s, entry.exerciseId, session.id);
 
   const [weight, setWeight] = React.useState('');
   const [reps, setReps] = React.useState('');
@@ -134,12 +128,6 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
   const setCount = entry.sets.length;
   const lastSet = prevSessions[0]?.entries.find(e => e.exerciseId === entry.exerciseId)?.sets[0];
 
-  const cueFor = (st) => {
-    if (allTimeBest && (st.weight > allTimeBest.weight || (st.weight === allTimeBest.weight && st.reps > allTimeBest.reps))) return 'pr';
-    if (prevTop && (st.weight > prevTop.weight || (st.weight === prevTop.weight && st.reps >= prevTop.reps))) return 'up';
-    return null;
-  };
-
   // ─── Collapsed: quiet, minimal row ─────────────────────────────
   if (!open) {
     return (
@@ -157,14 +145,8 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontSize: 15, fontWeight: 500, letterSpacing: -0.2, color: TOKENS.ink,
-            display: 'flex', alignItems: 'center', gap: 6,
           }}>
             {ex.name}
-            {allTimeBest && (
-              <span style={{ color: color.ink, display: 'inline-flex', alignItems: 'center', opacity: 0.7 }}>
-                <IconStar />
-              </span>
-            )}
           </div>
           {targetLabel && (
             <div style={{
@@ -212,14 +194,9 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
           }}>{targetLabel ? `Target · ${targetLabel}` : 'Active'}</div>
           <div style={{
             fontSize: 22, fontWeight: 700, letterSpacing: -0.6, color: TOKENS.ink,
-            display: 'flex', alignItems: 'center', gap: 8, lineHeight: 1.15,
+            lineHeight: 1.15,
           }}>
             {ex.name}
-            {allTimeBest && (
-              <span style={{ color: color.ink, display: 'inline-flex', alignItems: 'center' }} title={`PR: ${allTimeBest.weight}×${allTimeBest.reps}`}>
-                <IconStar />
-              </span>
-            )}
           </div>
         </div>
         <div style={{
@@ -286,7 +263,6 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
             }}>Today · {setCount} {setCount === 1 ? 'set' : 'sets'}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {entry.sets.map((st, i) => {
-                const cue = cueFor(st);
                 return (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
@@ -319,22 +295,6 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
                       <span style={{ color: TOKENS.subtle, margin: '0 8px', fontWeight: 500 }}>×</span>
                       <span>{st.reps}</span>
                     </div>
-                    {cue === 'pr' && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 3,
-                        padding: '4px 8px', borderRadius: 999,
-                        background: TOKENS.ink, color: TOKENS.bg,
-                        fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                      }}><IconStar /> PR</div>
-                    )}
-                    {cue === 'up' && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 3,
-                        padding: '4px 8px', borderRadius: 999,
-                        background: TOKENS.surface, color: TOKENS.success,
-                        fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-                      }}><IconUp /> Up</div>
-                    )}
                     <button
                       onClick={() => actions.removeSet(session.id, entry.exerciseId, i)}
                       style={{
@@ -454,7 +414,6 @@ function ExercisesScreen({ nav }) {
         ) : (
           <div style={{ padding: '0 16px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {filtered.map(e => {
-              const best = selectors.bestSetFor(s, e.id, null);
               return (
                 <div key={e.id} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
@@ -463,12 +422,6 @@ function ExercisesScreen({ nav }) {
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: -0.2, color: TOKENS.ink }}>{e.name}</div>
-                    {best && (
-                      <div style={{ fontSize: 11.5, color: TOKENS.muted, marginTop: 2, display: 'inline-flex', alignItems: 'center', gap: 4, fontVariantNumeric: 'tabular-nums' }}>
-                        <span style={{ color: TOKENS.accentInk, display: 'inline-flex', alignItems: 'center' }}><IconStar /></span>
-                        PR {best.weight} × {best.reps}
-                      </div>
-                    )}
                   </div>
                   <button
                     onClick={() => { if (confirm(`Delete "${e.name}"?`)) actions.deleteExercise(e.id); }}
