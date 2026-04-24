@@ -1,0 +1,57 @@
+{
+  "exercises": [
+    { "id": "ex_backsquat",       "name": "Back Squat" },
+    { "id": "ex_benchpress",      "name": "Bench Press" },
+    { "id": "ex_inclinedbbench",  "name": "Incline DB Bench" },
+    { "id": "ex_pullups",         "name": "Pull-ups" },
+    { "id": "ex_ohp",             "name": "Overhead Press" },
+    { "id": "ex_facepulls",       "name": "Face Pulls" },
+    { "id": "ex_lunges",          "name": "Lunges" },
+    { "id": "ex_rdl",             "name": "Romanian Deadlift" },
+    { "id": "ex_bentoverrow",     "name": "Bent-over Row" },
+    { "id": "ex_dips",            "name": "Dips" },
+    { "id": "ex_legpress",        "name": "Leg Press" }
+  ],
+  "routines": [
+    {
+      "id": "r_daya",
+      "name": "Day A — Squat focus",
+      "color": "clay",
+      "exercises": [
+        { "exerciseId": "ex_backsquat",      "sets": 4, "reps": "6-8" },
+        { "exerciseId": "ex_benchpress",     "sets": 4, "reps": "6-8" },
+        { "exerciseId": "ex_pullups",        "sets": 3, "reps": "max" },
+        { "exerciseId": "ex_ohp",            "sets": 3, "reps": "6-8" },
+        { "exerciseId": "ex_facepulls",      "sets": 3, "reps": "12-15" },
+        { "exerciseId": "ex_lunges",         "sets": 2, "reps": "10 per leg" }
+      ]
+    },
+    {
+      "id": "r_dayb",
+      "name": "Day B — Deadlift focus",
+      "color": "steel",
+      "exercises": [
+        { "exerciseId": "ex_rdl",            "sets": 4, "reps": "6-8" },
+        { "exerciseId": "ex_ohp",            "sets": 4, "reps": "6-8" },
+        { "exerciseId": "ex_bentoverrow",    "sets": 4, "reps": "6-8" },
+        { "exerciseId": "ex_dips",           "sets": 3, "reps": "max" },
+        { "exerciseId": "ex_facepulls",      "sets": 3, "reps": "12-15" },
+        { "exerciseId": "ex_benchpress",     "sets": 2, "reps": "8 (lighter)" }
+      ]
+    },
+    {
+      "id": "r_dayc",
+      "name": "Day C — Pump / accessory focus",
+      "color": "sage",
+      "exercises": [
+        { "exerciseId": "ex_legpress",       "sets": 4, "reps": "8-10" },
+        { "exerciseId": "ex_inclinedbbench", "sets": 4, "reps": "8-10" },
+        { "exerciseId": "ex_pullups",        "sets": 4, "reps": "max" },
+        { "exerciseId": "ex_bentoverrow",    "sets": 3, "reps": "8-10" },
+        { "exerciseId": "ex_dips",           "sets": 3, "reps": "max" },
+        { "exerciseId": "ex_facepulls",      "sets": 3, "reps": "12-15" }
+      ]
+    }
+  ],
+  "sessions": []
+}
