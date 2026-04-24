@@ -151,12 +151,17 @@ function RoutinesScreen({ nav }) {
   const [name, setName] = React.useState('');
   const [color, setColor] = React.useState('clay');
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  // Holds the *target* routine when user taps Start while another session is live.
+  const [confirmStart, setConfirmStart] = React.useState(null);
+
+  const active = selectors.activeSession(s);
 
   const lastByRoutine = React.useMemo(() => {
     const map = {};
-    [...s.sessions].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(x => {
-      if (!map[x.routineId]) map[x.routineId] = x;
-    });
+    [...s.sessions].filter(x => x.finishedAt)
+      .sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(x => {
+        if (!map[x.routineId]) map[x.routineId] = x;
+      });
     return map;
   }, [s.sessions]);
 
@@ -167,11 +172,30 @@ function RoutinesScreen({ nav }) {
     nav.push({ name: 'routine', routineId: r.id });
   };
 
+  // Tap Start on a routine card:
+  //   - empty routine → go edit
+  //   - active is this routine → resume
+  //   - active is different → confirm sheet
+  //   - no active → create + go
+  const startRoutine = (r) => {
+    if (r.exercises.length === 0) { nav.push({ name: 'routine', routineId: r.id }); return; }
+    if (active) {
+      if (active.routineId === r.id) {
+        nav.push({ name: 'workout', sessionId: active.id });
+        return;
+      }
+      setConfirmStart(r);
+      return;
+    }
+    const sess = actions.createSession(r.id);
+    nav.push({ name: 'workout', sessionId: sess.id });
+  };
+
   const weekCount = React.useMemo(() => {
     const now = new Date();
     const start = new Date(now); start.setDate(now.getDate() - now.getDay());
     start.setHours(0,0,0,0);
-    return s.sessions.filter(x => new Date(x.date) >= start).length;
+    return s.sessions.filter(x => x.finishedAt && new Date(x.date) >= start).length;
   }, [s.sessions]);
 
   return (
@@ -199,6 +223,55 @@ function RoutinesScreen({ nav }) {
         } />
       <div style={{ flex: 1, overflow: 'auto', paddingBottom: 20 }}>
         <LargeTitle eyebrow={weekCount > 0 ? `${weekCount} this week` : 'Let\u2019s go'}>Routines</LargeTitle>
+
+        {active && (() => {
+          const ar = selectors.routineById(s, active.routineId);
+          const ac = getRoutineColor(ar?.color || active.color);
+          const setCount = active.entries.reduce((a, e) => a + e.sets.length, 0);
+          const started = fmt.relDay(active.date);
+          return (
+            <div style={{ padding: '0 16px 14px' }}>
+              <div
+                onClick={() => nav.push({ name: 'workout', sessionId: active.id })}
+                style={{
+                  position: 'relative', background: ac.soft,
+                  border: `1px solid ${ac.base}`, borderRadius: 16,
+                  padding: '14px 14px 14px 16px', display: 'flex', alignItems: 'center',
+                  gap: 12, cursor: 'pointer', overflow: 'hidden',
+                }}>
+                <div style={{ position: 'relative', width: 10, height: 10, flexShrink: 0 }}>
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: '50%',
+                    background: ac.ink,
+                    animation: 'gymPulse 1.6s ease-out infinite',
+                  }} />
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: '50%', background: ac.ink,
+                  }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase',
+                    color: ac.ink, marginBottom: 3,
+                  }}>In progress</div>
+                  <div style={{
+                    fontSize: 15, fontWeight: 600, color: TOKENS.ink, letterSpacing: -0.2,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{ar?.name || 'Workout'}</div>
+                  <div style={{ fontSize: 12, color: TOKENS.muted, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                    {setCount > 0 ? `${setCount} set${setCount === 1 ? '' : 's'} logged` : 'No sets yet'}
+                    <span style={{ color: TOKENS.subtle }}>  ·  Started {started.toLowerCase()}</span>
+                  </div>
+                </div>
+                <div style={{
+                  height: 34, padding: '0 14px', borderRadius: 10, background: ac.ink,
+                  color: '#fff', display: 'flex', alignItems: 'center', fontSize: 12.5,
+                  fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', flexShrink: 0,
+                }}>Resume</div>
+              </div>
+            </div>
+          );
+        })()}
 
         {s.routines.length === 0 ? (
           <EmptyState
@@ -236,12 +309,7 @@ function RoutinesScreen({ nav }) {
                       </div>
                     </div>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (r.exercises.length === 0) { nav.push({ name: 'routine', routineId: r.id }); return; }
-                        const sess = actions.createSession(r.id);
-                        nav.push({ name: 'workout', sessionId: sess.id });
-                      }}
+                      onClick={(e) => { e.stopPropagation(); startRoutine(r); }}
                       style={{
                         height: 36, borderRadius: 10, padding: '0 16px',
                         background: c.ink, color: '#fff', border: 'none',
@@ -249,7 +317,7 @@ function RoutinesScreen({ nav }) {
                         textTransform: 'uppercase',
                         cursor: 'pointer', flexShrink: 0,
                       }}>
-                      Start
+                      {active && active.routineId === r.id ? 'Resume' : 'Start'}
                     </button>
                   </div>
                 </div>
@@ -275,6 +343,46 @@ function RoutinesScreen({ nav }) {
       </Sheet>
 
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} store={s} />
+
+      <Sheet open={!!confirmStart} onClose={() => setConfirmStart(null)} title="Workout in progress">
+        {confirmStart && active && (() => {
+          const ar = selectors.routineById(s, active.routineId);
+          const setCount = active.entries.reduce((a, e) => a + e.sets.length, 0);
+          return (
+            <div style={{ padding: '0 20px' }}>
+              <div style={{ fontSize: 14, color: TOKENS.muted, marginBottom: 16, lineHeight: 1.5 }}>
+                You have a <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{ar?.name || 'workout'}</b> in progress
+                {setCount > 0 ? ` with ${setCount} set${setCount === 1 ? '' : 's'} logged` : ''}.
+                Starting <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{confirmStart.name}</b> will discard it.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  onClick={() => {
+                    setConfirmStart(null);
+                    nav.push({ name: 'workout', sessionId: active.id });
+                  }}
+                  style={{
+                    height: 46, borderRadius: 12, background: TOKENS.ink, color: TOKENS.bg,
+                    border: 'none', fontFamily: TOKENS.font, fontSize: 14.5, fontWeight: 700,
+                    letterSpacing: 0.2, textTransform: 'uppercase', cursor: 'pointer',
+                  }}>Resume current</button>
+                <SecondaryButton
+                  onClick={() => {
+                    const r = confirmStart;
+                    setConfirmStart(null);
+                    actions.deleteSession(active.id);
+                    const sess = actions.createSession(r.id);
+                    nav.push({ name: 'workout', sessionId: sess.id });
+                  }}
+                  style={{ color: TOKENS.danger }}>
+                  Discard & start {confirmStart.name}
+                </SecondaryButton>
+                <SecondaryButton onClick={() => setConfirmStart(null)}>Cancel</SecondaryButton>
+              </div>
+            </div>
+          );
+        })()}
+      </Sheet>
     </Screen>
   );
 }
@@ -384,6 +492,8 @@ function RoutineScreen({ nav, routineId }) {
     .map(x => ({ target: x, ex: selectors.exerciseById(s, x.exerciseId) }))
     .filter(r => r.ex);
   const [editingTarget, setEditingTarget] = React.useState(null);
+  const [confirmStart, setConfirmStart] = React.useState(false);
+  const active = selectors.activeSession(s);
 
   const saveName = () => {
     if (name.trim() && name !== routine.name) actions.renameRoutine(routine.id, name.trim());
@@ -530,21 +640,30 @@ function RoutineScreen({ nav, routineId }) {
         background: `linear-gradient(to top, ${TOKENS.bg} 70%, transparent)`,
       }}>
         <button
-          disabled={exercises.length === 0}
+          disabled={exerciseRows.length === 0}
           onClick={() => {
+            if (exerciseRows.length === 0) return;
+            if (active) {
+              if (active.routineId === routine.id) {
+                nav.replace({ name: 'workout', sessionId: active.id });
+                return;
+              }
+              setConfirmStart(true);
+              return;
+            }
             const sess = actions.createSession(routine.id);
             nav.replace({ name: 'workout', sessionId: sess.id });
           }}
           style={{
             width: '100%', height: 54, borderRadius: 14,
-            background: exercises.length === 0 ? TOKENS.lineStrong : c.ink,
-            color: exercises.length === 0 ? TOKENS.muted : '#fff', border: 'none',
+            background: exerciseRows.length === 0 ? TOKENS.lineStrong : c.ink,
+            color: exerciseRows.length === 0 ? TOKENS.muted : '#fff', border: 'none',
             fontFamily: TOKENS.font, fontSize: 15, fontWeight: 700, letterSpacing: 0.3,
             textTransform: 'uppercase',
-            cursor: exercises.length === 0 ? 'default' : 'pointer',
+            cursor: exerciseRows.length === 0 ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}>
-          Start workout →
+          {active && active.routineId === routine.id ? 'Resume workout →' : 'Start workout →'}
         </button>
       </div>
 
@@ -582,6 +701,45 @@ function RoutineScreen({ nav, routineId }) {
             Delete routine
           </button>
         </div>
+      </Sheet>
+
+      <Sheet open={confirmStart} onClose={() => setConfirmStart(false)} title="Workout in progress">
+        {active && (() => {
+          const ar = selectors.routineById(s, active.routineId);
+          const setCount = active.entries.reduce((a, e) => a + e.sets.length, 0);
+          return (
+            <div style={{ padding: '0 20px' }}>
+              <div style={{ fontSize: 14, color: TOKENS.muted, marginBottom: 16, lineHeight: 1.5 }}>
+                You have a <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{ar?.name || 'workout'}</b> in progress
+                {setCount > 0 ? ` with ${setCount} set${setCount === 1 ? '' : 's'} logged` : ''}.
+                Starting <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{routine.name}</b> will discard it.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  onClick={() => {
+                    setConfirmStart(false);
+                    nav.replace({ name: 'workout', sessionId: active.id });
+                  }}
+                  style={{
+                    height: 46, borderRadius: 12, background: TOKENS.ink, color: TOKENS.bg,
+                    border: 'none', fontFamily: TOKENS.font, fontSize: 14.5, fontWeight: 700,
+                    letterSpacing: 0.2, textTransform: 'uppercase', cursor: 'pointer',
+                  }}>Resume current</button>
+                <SecondaryButton
+                  onClick={() => {
+                    setConfirmStart(false);
+                    actions.deleteSession(active.id);
+                    const sess = actions.createSession(routine.id);
+                    nav.replace({ name: 'workout', sessionId: sess.id });
+                  }}
+                  style={{ color: TOKENS.danger }}>
+                  Discard & start {routine.name}
+                </SecondaryButton>
+                <SecondaryButton onClick={() => setConfirmStart(false)}>Cancel</SecondaryButton>
+              </div>
+            </div>
+          );
+        })()}
       </Sheet>
     </Screen>
   );

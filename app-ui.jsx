@@ -200,6 +200,7 @@ if (typeof document !== 'undefined' && !document.getElementById('gym-app-keyfram
     @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
     @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+    @keyframes gymPulse { 0% { transform: scale(1); opacity: 0.45 } 70% { transform: scale(2.4); opacity: 0 } 100% { transform: scale(2.4); opacity: 0 } }
     input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; }
     button:active { transform: scale(0.98); }

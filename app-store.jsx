@@ -3,7 +3,8 @@
 //   exercises: [{ id, name }]
 //   routines:  [{ id, name, color, exercises: [{ exerciseId, sets, reps }] }]
 //                sets is a number or null; reps is a string (e.g. "6-8", "max", "12") or null
-//   sessions:  [{ id, date (ISO), routineId, color, entries: [{ exerciseId, sets: [{ weight, reps }] }] }]
+//   sessions:  [{ id, date (ISO), finishedAt (ISO|null), routineId, color, entries: [{ exerciseId, sets: [{ weight, reps }] }] }]
+//                finishedAt === null → session is in progress. At most one in progress at a time.
 //                logged sets: weight is a number (0 = bodyweight); reps is a number
 
 const STORAGE_KEY = 'gym-app-v1';
@@ -129,12 +130,20 @@ const actions = {
     const session = {
       id: uid(),
       date: new Date().toISOString(),
+      finishedAt: null,
       routineId,
       color: routine?.color,
       entries: (routine?.exercises || []).map(x => ({ exerciseId: x.exerciseId, sets: [] })),
     };
     setState(s => ({ ...s, sessions: [...s.sessions, session] }));
     return session;
+  },
+  finishSession: (sessionId) => {
+    setState(s => ({
+      ...s,
+      sessions: s.sessions.map(x =>
+        x.id === sessionId ? { ...x, finishedAt: new Date().toISOString() } : x),
+    }));
   },
   updateSession: (sessionId, patch) => {
     setState(s => ({
@@ -212,9 +221,12 @@ const selectors = {
   exerciseById: (s, id) => s.exercises.find(e => e.id === id),
   routineById: (s, id) => s.routines.find(r => r.id === id),
   sessionById: (s, id) => s.sessions.find(x => x.id === id),
+  activeSession: (s) => s.sessions.find(x => !x.finishedAt) || null,
+  finishedSessions: (s) => s.sessions.filter(x => x.finishedAt),
   // Previous N finished sessions that include this exercise (excluding current)
   lastSessionsFor: (s, exerciseId, excludeSessionId, n = 3) => {
     return s.sessions
+      .filter(x => x.finishedAt)
       .filter(x => x.id !== excludeSessionId)
       .filter(x => x.entries.some(e => e.exerciseId === exerciseId && e.sets.length > 0))
       .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -222,7 +234,7 @@ const selectors = {
   },
   sessionsByDay: (s) => {
     const map = {};
-    s.sessions.forEach(x => {
+    s.sessions.filter(x => x.finishedAt).forEach(x => {
       const key = x.date.slice(0, 10);
       (map[key] ||= []).push(x);
     });
@@ -232,6 +244,7 @@ const selectors = {
   bestSetFor: (s, exerciseId, excludeSessionId) => {
     let best = null;
     s.sessions.forEach(x => {
+      if (!x.finishedAt) return;
       if (x.id === excludeSessionId) return;
       x.entries.forEach(e => {
         if (e.exerciseId !== exerciseId) return;
@@ -247,6 +260,7 @@ const selectors = {
   // Top set (by weight) from the most recent previous session for this exercise
   prevTopSetFor: (s, exerciseId, excludeSessionId) => {
     const prev = s.sessions
+      .filter(x => x.finishedAt)
       .filter(x => x.id !== excludeSessionId)
       .filter(x => x.entries.some(e => e.exerciseId === exerciseId && e.sets.length > 0))
       .sort((a, b) => new Date(b.date) - new Date(a.date))[0];

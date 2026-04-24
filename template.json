@@ -1,0 +1,43 @@
+{
+  "exercises": [
+    { "id": "ex_backsquat",  "name": "Back Squat" },
+    { "id": "ex_benchpress", "name": "Bench Press" }
+  ],
+  "routines": [
+    {
+      "id": "r_daya",
+      "name": "Day A — Squat focus",
+      "color": "clay",
+      "exercises": [
+        { "exerciseId": "ex_backsquat",  "sets": 4, "reps": "6-8" },
+        { "exerciseId": "ex_benchpress", "sets": 4, "reps": "6-8" }
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "id": "s_example",
+      "date": "2026-04-20T18:00:00.000Z",
+      "finishedAt": "2026-04-20T19:10:00.000Z",
+      "routineId": "r_daya",
+      "color": "clay",
+      "entries": [
+        {
+          "exerciseId": "ex_backsquat",
+          "sets": [
+            { "weight": 185, "reps": 8 },
+            { "weight": 205, "reps": 6 },
+            { "weight": 215, "reps": 5 }
+          ]
+        },
+        {
+          "exerciseId": "ex_benchpress",
+          "sets": [
+            { "weight": 135, "reps": 8 },
+            { "weight": 155, "reps": 6 }
+          ]
+        }
+      ]
+    }
+  ]
+}

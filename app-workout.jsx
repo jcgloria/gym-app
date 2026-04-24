@@ -18,7 +18,8 @@ function WorkoutScreen({ nav, sessionId }) {
 
   const finish = (keep) => {
     setFinishOpen(false);
-    if (!keep) actions.deleteSession(session.id);
+    if (keep) actions.finishSession(session.id);
+    else actions.deleteSession(session.id);
     nav.reset({ name: 'tabs', tab: keep ? 'history' : 'routines' });
   };
 
@@ -31,7 +32,7 @@ function WorkoutScreen({ nav, sessionId }) {
       }} />
       <TopBar
         title={fmt.dateLong(session.date)}
-        onBack={() => setFinishOpen(true)}
+        onBack={() => nav.reset({ name: 'tabs', tab: 'routines' })}
         subtle
         right={
           <button onClick={() => setFinishOpen(true)} style={{
@@ -504,7 +505,8 @@ function HistoryScreen({ nav }) {
   const today = new Date();
   const [viewMonth, setViewMonth] = React.useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
-  const sorted = [...s.sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sorted = s.sessions.filter(x => x.finishedAt)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const year = viewMonth.getFullYear();
   const month = viewMonth.getMonth();
@@ -520,7 +522,7 @@ function HistoryScreen({ nav }) {
   // even after the routine is deleted (stamped on save / delete).
   const dayToColor = React.useMemo(() => {
     const m = {};
-    s.sessions.forEach(x => {
+    s.sessions.filter(x => x.finishedAt).forEach(x => {
       const d = new Date(x.date);
       if (d.getFullYear() !== year || d.getMonth() !== month) return;
       const day = d.getDate();
@@ -543,7 +545,7 @@ function HistoryScreen({ nav }) {
 
   // Streak count (consecutive days with workouts ending today or yesterday)
   const streak = React.useMemo(() => {
-    const dayKeys = new Set(s.sessions.map(x => x.date.slice(0, 10)));
+    const dayKeys = new Set(s.sessions.filter(x => x.finishedAt).map(x => x.date.slice(0, 10)));
     let n = 0;
     const d = new Date(); d.setHours(0,0,0,0);
     // Allow starting from yesterday (rest day today is ok)
@@ -562,7 +564,7 @@ function HistoryScreen({ nav }) {
     <Screen>
       <TopBar title="" />
       <div style={{ flex: 1, overflow: 'auto', paddingBottom: 20 }}>
-        <LargeTitle eyebrow={streak > 0 ? `🔥 ${streak}-day streak` : `${s.sessions.length} workout${s.sessions.length === 1 ? '' : 's'}`}>History</LargeTitle>
+        <LargeTitle eyebrow={streak > 0 ? `🔥 ${streak}-day streak` : `${sorted.length} workout${sorted.length === 1 ? '' : 's'}`}>History</LargeTitle>
 
         <div style={{ padding: '0 16px 20px' }}>
           <Card style={{ padding: 16 }}>
