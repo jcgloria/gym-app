@@ -56,16 +56,20 @@ function WorkoutScreen({ nav, sessionId }) {
         </div>
 
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {session.entries.map(entry => (
-            <ExerciseBlock
-              key={entry.exerciseId}
-              session={session}
-              entry={entry}
-              color={c}
-              open={active === entry.exerciseId}
-              onToggle={() => setActive(active === entry.exerciseId ? null : entry.exerciseId)}
-            />
-          ))}
+          {session.entries.map(entry => {
+            const target = routine?.exercises.find(x => x.exerciseId === entry.exerciseId);
+            return (
+              <ExerciseBlock
+                key={entry.exerciseId}
+                session={session}
+                entry={entry}
+                color={c}
+                target={target}
+                open={active === entry.exerciseId}
+                onToggle={() => setActive(active === entry.exerciseId ? null : entry.exerciseId)}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -93,7 +97,7 @@ function WorkoutScreen({ nav, sessionId }) {
   );
 }
 
-function ExerciseBlock({ session, entry, open, onToggle, color }) {
+function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
   const s = useStore();
   const ex = selectors.exerciseById(s, entry.exerciseId);
   const prevSessions = selectors.lastSessionsFor(s, entry.exerciseId, session.id, 3);
@@ -106,17 +110,25 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
   React.useEffect(() => {
     if (open && !weight && !reps) {
       const lastSet = prevSessions[0]?.entries.find(e => e.exerciseId === entry.exerciseId)?.sets[0];
-      if (lastSet) { setWeight(String(lastSet.weight)); setReps(String(lastSet.reps)); }
+      if (lastSet) { setWeight(lastSet.weight ? String(lastSet.weight) : ''); setReps(String(lastSet.reps)); }
     }
   }, [open]);
 
   if (!ex) return null;
 
   const add = () => {
-    const w = parseFloat(weight); const r = parseInt(reps, 10);
-    if (!isFinite(w) || !isFinite(r) || r <= 0) return;
+    const r = parseInt(reps, 10);
+    if (!isFinite(r) || r <= 0) return;
+    const w = weight.trim() === '' ? 0 : parseFloat(weight);
+    if (!isFinite(w) || w < 0) return;
     actions.addSet(session.id, entry.exerciseId, { weight: w, reps: r });
   };
+
+  const targetLabel = target ? (
+    (target.sets != null && target.reps != null && target.reps !== '')
+      ? `${target.sets} × ${target.reps}`
+      : target.reps != null && target.reps !== '' ? String(target.reps) : ''
+  ) : '';
 
   const setCount = entry.sets.length;
   const lastSet = prevSessions[0]?.entries.find(e => e.exerciseId === entry.exerciseId)?.sets[0];
@@ -153,6 +165,12 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
               </span>
             )}
           </div>
+          {targetLabel && (
+            <div style={{
+              fontSize: 11.5, color: TOKENS.muted, marginTop: 2,
+              fontFamily: TOKENS.fontDisplay, fontVariantNumeric: 'tabular-nums', letterSpacing: -0.2,
+            }}>{targetLabel}</div>
+          )}
         </div>
         <div style={{
           fontFamily: TOKENS.fontDisplay, fontSize: 13, fontWeight: 600,
@@ -190,7 +208,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
             fontSize: 11, fontWeight: 700, letterSpacing: 1.4,
             textTransform: 'uppercase', color: color.ink,
             marginBottom: 4,
-          }}>Active</div>
+          }}>{targetLabel ? `Target · ${targetLabel}` : 'Active'}</div>
           <div style={{
             fontSize: 22, fontWeight: 700, letterSpacing: -0.6, color: TOKENS.ink,
             display: 'flex', alignItems: 'center', gap: 8, lineHeight: 1.15,
@@ -242,7 +260,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
                           fontSize: 15, fontWeight: 600,
                           color: TOKENS.ink, letterSpacing: -0.3,
                         }}>
-                          <span>{st.weight}</span>
+                          <span>{st.weight > 0 ? st.weight : 'BW'}</span>
                           <span style={{ color: TOKENS.subtle, margin: '0 4px', fontWeight: 500 }}>×</span>
                           <span>{st.reps}</span>
                           {i < prevEntry.sets.length - 1 && (
@@ -289,8 +307,14 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
                       fontSize: 20, fontWeight: 600, color: TOKENS.ink,
                       letterSpacing: -0.4,
                     }}>
-                      <span>{st.weight}</span>
-                      <span style={{ color: TOKENS.muted, fontWeight: 500, fontSize: 13, marginLeft: 4 }}>lb</span>
+                      {st.weight > 0 ? (
+                        <>
+                          <span>{st.weight}</span>
+                          <span style={{ color: TOKENS.muted, fontWeight: 500, fontSize: 13, marginLeft: 4 }}>lb</span>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: 14, fontWeight: 600, color: TOKENS.muted, letterSpacing: 0.2 }}>BW</span>
+                      )}
                       <span style={{ color: TOKENS.subtle, margin: '0 8px', fontWeight: 500 }}>×</span>
                       <span>{st.reps}</span>
                     </div>
@@ -338,13 +362,13 @@ function ExerciseBlock({ session, entry, open, onToggle, color }) {
             <div style={{ width: 1, background: TOKENS.line, margin: '8px 0' }} />
             <InputPair label="reps" value={reps} onChange={setReps} integer big />
           </div>
-          <button onClick={add} disabled={!weight || !reps} style={{
+          <button onClick={add} disabled={!reps} style={{
             width: 72, borderRadius: 14,
-            background: (!weight || !reps) ? TOKENS.lineStrong : color.ink,
-            color: (!weight || !reps) ? TOKENS.muted : '#fff', border: 'none',
+            background: !reps ? TOKENS.lineStrong : color.ink,
+            color: !reps ? TOKENS.muted : '#fff', border: 'none',
             fontFamily: TOKENS.font,
             fontSize: 14, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase',
-            cursor: (!weight || !reps) ? 'default' : 'pointer',
+            cursor: !reps ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             flexShrink: 0,
           }}>
@@ -722,8 +746,14 @@ function SessionDetailScreen({ nav, sessionId }) {
                         {i + 1}
                       </div>
                       <div style={{ flex: 1, color: TOKENS.ink, fontFamily: TOKENS.fontDisplay, fontSize: 17, fontWeight: 600, letterSpacing: -0.3 }}>
-                        <span>{st.weight}</span>
-                        <span style={{ color: TOKENS.muted, fontWeight: 500, fontSize: 12, marginLeft: 3 }}>lb</span>
+                        {st.weight > 0 ? (
+                          <>
+                            <span>{st.weight}</span>
+                            <span style={{ color: TOKENS.muted, fontWeight: 500, fontSize: 12, marginLeft: 3 }}>lb</span>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: 12, fontWeight: 600, color: TOKENS.muted, letterSpacing: 0.2 }}>BW</span>
+                        )}
                         <span style={{ color: TOKENS.subtle, margin: '0 8px', fontWeight: 500 }}>×</span>
                         <span>{st.reps}</span>
                       </div>

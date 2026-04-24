@@ -52,6 +52,98 @@ function ColorPicker({ value, onChange }) {
   );
 }
 
+// ─── Target (sets × reps) helpers ───────────────────────────
+function formatTarget(target) {
+  if (!target) return '';
+  const hasSets = target.sets != null && target.sets !== '';
+  const hasReps = target.reps != null && target.reps !== '';
+  if (!hasSets && !hasReps) return '';
+  if (hasSets && hasReps) return `${target.sets} × ${target.reps}`;
+  if (hasSets) return `${target.sets} sets`;
+  return target.reps;
+}
+
+function EditTargetSheet({ open, target, exerciseName, accent, onClose, onSave }) {
+  const [sets, setSets] = React.useState('');
+  const [reps, setReps] = React.useState('');
+
+  React.useEffect(() => {
+    if (open && target) {
+      setSets(target.sets != null ? String(target.sets) : '');
+      setReps(target.reps != null ? String(target.reps) : '');
+    }
+  }, [open, target]);
+
+  const save = () => {
+    const parsedSets = sets.trim() === '' ? null : parseInt(sets, 10);
+    const parsedReps = reps.trim() === '' ? null : reps.trim();
+    onSave(Number.isFinite(parsedSets) ? parsedSets : null, parsedReps);
+  };
+
+  const setRepsQuick = (val) => setReps(val);
+
+  return (
+    <Sheet open={open} onClose={onClose} title={exerciseName || 'Target'}>
+      <div style={{ padding: '0 20px' }}>
+        <div style={{
+          display: 'flex', gap: 10, alignItems: 'stretch',
+          background: TOKENS.bg, padding: 6, borderRadius: 14,
+          border: `1px solid ${TOKENS.line}`,
+        }}>
+          <TargetInputPair label="sets" value={sets} onChange={(v) => setSets(v.replace(/[^\d]/g, ''))} />
+          <div style={{ width: 1, background: TOKENS.line, margin: '8px 0' }} />
+          <TargetInputPair label="reps" value={reps} onChange={setReps} freeText />
+        </div>
+
+        <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+          {['6-8', '8-10', '10-12', '12-15', 'max'].map(v => (
+            <button key={v} onClick={() => setRepsQuick(v)} style={{
+              padding: '6px 12px', borderRadius: 999,
+              background: reps === v ? (accent?.soft || TOKENS.accentSoft) : TOKENS.surface,
+              border: `1px solid ${reps === v ? (accent?.base || TOKENS.lineStrong) : TOKENS.line}`,
+              color: reps === v ? (accent?.ink || TOKENS.accentInk) : TOKENS.ink,
+              fontSize: 12.5, fontWeight: 600, fontFamily: TOKENS.font,
+              cursor: 'pointer', fontVariantNumeric: 'tabular-nums',
+            }}>{v}</button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <SecondaryButton onClick={() => { onSave(null, null); }} style={{ flex: 1 }}>Clear</SecondaryButton>
+          <PrimaryButton onClick={save} style={{ flex: 1 }}>Save</PrimaryButton>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+function TargetInputPair({ label, value, onChange, freeText }) {
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '6px 4px',
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: 1.2,
+        textTransform: 'uppercase', color: TOKENS.subtle, marginBottom: 4,
+      }}>{label}</div>
+      <input
+        inputMode={freeText ? 'text' : 'numeric'}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={freeText ? '6-8 / max' : '—'}
+        style={{
+          width: '100%', border: 'none', background: 'transparent',
+          fontFamily: TOKENS.fontDisplay,
+          fontSize: 24, fontWeight: 600,
+          color: TOKENS.ink, textAlign: 'center', outline: 'none',
+          fontVariantNumeric: 'tabular-nums', padding: 0, letterSpacing: -0.5,
+        }}
+      />
+    </div>
+  );
+}
+
 // ─── Routines (Home) ────────────────────────────────────────
 function RoutinesScreen({ nav }) {
   const s = useStore();
@@ -139,14 +231,14 @@ function RoutinesScreen({ nav }) {
                         {r.name}
                       </div>
                       <div style={{ fontSize: 13, color: TOKENS.muted, fontVariantNumeric: 'tabular-nums' }}>
-                        {r.exerciseIds.length} exercise{r.exerciseIds.length === 1 ? '' : 's'}
+                        {r.exercises.length} exercise{r.exercises.length === 1 ? '' : 's'}
                         {last && <span style={{ color: TOKENS.subtle }}>  ·  Last {fmt.relDay(last.date).toLowerCase()}</span>}
                       </div>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (r.exerciseIds.length === 0) { nav.push({ name: 'routine', routineId: r.id }); return; }
+                        if (r.exercises.length === 0) { nav.push({ name: 'routine', routineId: r.id }); return; }
                         const sess = actions.createSession(r.id);
                         nav.push({ name: 'workout', sessionId: sess.id });
                       }}
@@ -288,7 +380,10 @@ function RoutineScreen({ nav, routineId }) {
   if (!routine) return <Screen><TopBar title="Not found" onBack={() => nav.pop()} /></Screen>;
 
   const c = getRoutineColor(routine.color);
-  const exercises = routine.exerciseIds.map(id => selectors.exerciseById(s, id)).filter(Boolean);
+  const exerciseRows = routine.exercises
+    .map(x => ({ target: x, ex: selectors.exerciseById(s, x.exerciseId) }))
+    .filter(r => r.ex);
+  const [editingTarget, setEditingTarget] = React.useState(null);
 
   const saveName = () => {
     if (name.trim() && name !== routine.name) actions.renameRoutine(routine.id, name.trim());
@@ -338,7 +433,7 @@ function RoutineScreen({ nav, routineId }) {
             }}>{routine.name}</div>
           )}
           <div style={{ fontSize: 13, color: TOKENS.muted, marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>
-            {exercises.length} exercise{exercises.length === 1 ? '' : 's'}
+            {exerciseRows.length} exercise{exerciseRows.length === 1 ? '' : 's'}
           </div>
         </div>
 
@@ -348,7 +443,7 @@ function RoutineScreen({ nav, routineId }) {
           color: TOKENS.subtle,
         }}>Exercises</div>
 
-        {exercises.length === 0 ? (
+        {exerciseRows.length === 0 ? (
           <div style={{ padding: '0 16px' }}>
             <Card style={{
               padding: 22, textAlign: 'center', borderStyle: 'dashed',
@@ -359,32 +454,44 @@ function RoutineScreen({ nav, routineId }) {
           </div>
         ) : (
           <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {exercises.map((e, idx) => (
-              <div key={e.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                background: TOKENS.surface, border: `1px solid ${TOKENS.line}`,
-                borderRadius: 14, padding: '14px 16px',
-              }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: 8,
-                  background: c.soft, color: c.ink,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700,
-                  fontVariantNumeric: 'tabular-nums',
-                }}>{idx + 1}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: -0.2, color: TOKENS.ink }}>{e.name}</div>
-                </div>
-                <button
-                  onClick={() => actions.removeExerciseFromRoutine(routine.id, e.id)}
+            {exerciseRows.map(({ ex, target }, idx) => {
+              const targetLabel = formatTarget(target);
+              return (
+                <div key={ex.id} onClick={() => setEditingTarget(target)}
                   style={{
-                    width: 30, height: 30, borderRadius: 8, border: 'none',
-                    background: 'transparent', color: TOKENS.subtle, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    background: TOKENS.surface, border: `1px solid ${TOKENS.line}`,
+                    borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
+                  }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: 8,
+                    background: c.soft, color: c.ink,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                ><Icon.close /></button>
-              </div>
-            ))}
+                    fontSize: 12, fontWeight: 700,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>{idx + 1}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: -0.2, color: TOKENS.ink }}>{ex.name}</div>
+                    <div style={{
+                      fontSize: 12.5, fontVariantNumeric: 'tabular-nums',
+                      color: targetLabel ? c.ink : TOKENS.subtle, marginTop: 2,
+                      fontFamily: targetLabel ? TOKENS.fontDisplay : TOKENS.font,
+                      fontWeight: targetLabel ? 600 : 400,
+                    }}>
+                      {targetLabel || 'Tap to set sets × reps'}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); actions.removeExerciseFromRoutine(routine.id, ex.id); }}
+                    style={{
+                      width: 30, height: 30, borderRadius: 8, border: 'none',
+                      background: 'transparent', color: TOKENS.subtle, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  ><Icon.close /></button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -444,9 +551,21 @@ function RoutineScreen({ nav, routineId }) {
       <ExercisePicker
         open={picking}
         onClose={() => setPicking(false)}
-        excludeIds={routine.exerciseIds}
+        excludeIds={routine.exercises.map(x => x.exerciseId)}
         onPick={(id) => { actions.addExerciseToRoutine(routine.id, id); }}
         accent={c}
+      />
+
+      <EditTargetSheet
+        open={!!editingTarget}
+        target={editingTarget}
+        exerciseName={editingTarget ? selectors.exerciseById(s, editingTarget.exerciseId)?.name : ''}
+        accent={c}
+        onClose={() => setEditingTarget(null)}
+        onSave={(sets, reps) => {
+          if (editingTarget) actions.setExerciseTarget(routine.id, editingTarget.exerciseId, { sets, reps });
+          setEditingTarget(null);
+        }}
       />
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Routine options">

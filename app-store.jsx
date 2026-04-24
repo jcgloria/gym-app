@@ -1,8 +1,10 @@
 // app-store.jsx — localStorage-backed data model + hooks for the gym app
 // Data shape:
 //   exercises: [{ id, name }]
-//   routines:  [{ id, name, color, exerciseIds: [] }]
-//   sessions:  [{ id, date (ISO), routineId, entries: [{ exerciseId, sets: [{ weight, reps }] }] }]
+//   routines:  [{ id, name, color, exercises: [{ exerciseId, sets, reps }] }]
+//                sets is a number or null; reps is a string (e.g. "6-8", "max", "12") or null
+//   sessions:  [{ id, date (ISO), routineId, color, entries: [{ exerciseId, sets: [{ weight, reps }] }] }]
+//                logged sets: weight is a number (0 = bodyweight); reps is a number
 
 const STORAGE_KEY = 'gym-app-v1';
 
@@ -19,35 +21,10 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
     const parsed = JSON.parse(raw);
-    return migrate({ ...defaultState(), ...parsed });
+    return { ...defaultState(), ...parsed };
   } catch (e) {
     return defaultState();
   }
-}
-
-// Map old routine color IDs to new muted palette so pre-existing data still works
-const COLOR_MIGRATION = {
-  coral:   'clay',
-  amber:   'sand',
-  lime:    'sage',
-  teal:    'mist',
-  blue:    'steel',
-  violet:  'iris',
-  magenta: 'rose',
-  slate:   'graphite',
-};
-const VALID_COLORS = new Set(['clay','sand','sage','mist','steel','iris','rose','graphite']);
-
-function migrate(s) {
-  if (!Array.isArray(s.routines)) return s;
-  let changed = false;
-  const routines = s.routines.map(r => {
-    if (!r || VALID_COLORS.has(r.color)) return r;
-    const mapped = COLOR_MIGRATION[r.color] || 'clay';
-    changed = true;
-    return { ...r, color: mapped };
-  });
-  return changed ? { ...s, routines } : s;
 }
 
 function saveState(s) {
@@ -92,11 +69,11 @@ const actions = {
     setState(s => ({
       ...s,
       exercises: s.exercises.filter(e => e.id !== id),
-      routines: s.routines.map(r => ({ ...r, exerciseIds: r.exerciseIds.filter(eid => eid !== id) })),
+      routines: s.routines.map(r => ({ ...r, exercises: r.exercises.filter(x => x.exerciseId !== id) })),
     }));
   },
   addRoutine: (name, color = 'clay') => {
-    const r = { id: uid(), name: name.trim(), color, exerciseIds: [] };
+    const r = { id: uid(), name: name.trim(), color, exercises: [] };
     setState(s => ({ ...s, routines: [...s.routines, r] }));
     return r;
   },
@@ -119,24 +96,31 @@ const actions = {
       };
     });
   },
-  setRoutineExercises: (routineId, exerciseIds) => {
-    setState(s => ({
-      ...s,
-      routines: s.routines.map(r => r.id === routineId ? { ...r, exerciseIds } : r),
-    }));
-  },
   addExerciseToRoutine: (routineId, exerciseId) => {
     setState(s => ({
       ...s,
-      routines: s.routines.map(r => r.id === routineId && !r.exerciseIds.includes(exerciseId)
-        ? { ...r, exerciseIds: [...r.exerciseIds, exerciseId] } : r),
+      routines: s.routines.map(r => r.id === routineId && !r.exercises.some(x => x.exerciseId === exerciseId)
+        ? { ...r, exercises: [...r.exercises, { exerciseId, sets: null, reps: null }] } : r),
     }));
   },
   removeExerciseFromRoutine: (routineId, exerciseId) => {
     setState(s => ({
       ...s,
       routines: s.routines.map(r => r.id === routineId
-        ? { ...r, exerciseIds: r.exerciseIds.filter(id => id !== exerciseId) } : r),
+        ? { ...r, exercises: r.exercises.filter(x => x.exerciseId !== exerciseId) } : r),
+    }));
+  },
+  setExerciseTarget: (routineId, exerciseId, { sets, reps }) => {
+    setState(s => ({
+      ...s,
+      routines: s.routines.map(r => r.id === routineId
+        ? {
+            ...r,
+            exercises: r.exercises.map(x =>
+              x.exerciseId === exerciseId ? { ...x, sets, reps } : x
+            ),
+          }
+        : r),
     }));
   },
   // Session lifecycle
@@ -147,7 +131,7 @@ const actions = {
       date: new Date().toISOString(),
       routineId,
       color: routine?.color,
-      entries: (routine?.exerciseIds || []).map(eid => ({ exerciseId: eid, sets: [] })),
+      entries: (routine?.exercises || []).map(x => ({ exerciseId: x.exerciseId, sets: [] })),
     };
     setState(s => ({ ...s, sessions: [...s.sessions, session] }));
     return session;
@@ -215,13 +199,11 @@ const actions = {
     listeners.forEach(fn => fn());
   },
   replaceAll: (next) => {
-    // Shallow-validate shape, then replace state wholesale.
-    const safe = {
+    setState({
       exercises: Array.isArray(next?.exercises) ? next.exercises : [],
       routines:  Array.isArray(next?.routines)  ? next.routines  : [],
       sessions:  Array.isArray(next?.sessions)  ? next.sessions  : [],
-    };
-    setState(migrate(safe));
+    });
   },
 };
 
