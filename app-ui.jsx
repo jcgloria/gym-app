@@ -1,5 +1,5 @@
 // app-ui.jsx — shared UI primitives for the gym app.
-// TOKENS lives in app-theme.jsx and is mutated on theme change.
+// TOKENS lives in app-theme.jsx.
 
 // ─── Icons (hairline, 20px) ──────────────────────────────────
 const Icon = {
@@ -8,7 +8,6 @@ const Icon = {
   back: (p = {}) => <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...p}><path d="M12 4l-6 6 6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   close: (p = {}) => <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...p}><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   trash: (p = {}) => <svg width="18" height="18" viewBox="0 0 18 18" fill="none" {...p}><path d="M3 5h12M7 5V3.5a1 1 0 011-1h2a1 1 0 011 1V5M5 5l.8 9.1a1 1 0 001 .9h4.4a1 1 0 001-.9L13 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  check: (p = {}) => <svg width="18" height="18" viewBox="0 0 18 18" fill="none" {...p}><path d="M3.5 9.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   home: (p = {}) => <svg width="22" height="22" viewBox="0 0 22 22" fill="none" {...p}><path d="M3 10l8-6 8 6v8.5a1 1 0 01-1 1h-4v-6h-6v6H4a1 1 0 01-1-1V10z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/></svg>,
   dumbbell: (p = {}) => <svg width="22" height="22" viewBox="0 0 22 22" fill="none" {...p}><path d="M3 8v6M5.5 6v10M16.5 6v10M19 8v6M5.5 11h11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
   calendar: (p = {}) => <svg width="22" height="22" viewBox="0 0 22 22" fill="none" {...p}><rect x="3.5" y="5" width="15" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M3.5 9h15M7 3.5v3M15 3.5v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>,
@@ -115,11 +114,10 @@ function Card({ children, style = {}, onClick }) {
   );
 }
 
-function TextInput({ value, onChange, placeholder, autoFocus, type = 'text', inputMode, style = {}, align = 'left' }) {
+function TextInput({ value, onChange, placeholder, autoFocus, style = {} }) {
   return (
     <input
-      type={type}
-      inputMode={inputMode}
+      type="text"
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
@@ -128,7 +126,7 @@ function TextInput({ value, onChange, placeholder, autoFocus, type = 'text', inp
         width: '100%', height: 48, borderRadius: 12,
         border: `1px solid ${TOKENS.line}`, background: TOKENS.surface,
         padding: '0 14px', fontFamily: TOKENS.font, fontSize: 16,
-        color: TOKENS.ink, outline: 'none', textAlign: align,
+        color: TOKENS.ink, outline: 'none',
         boxSizing: 'border-box',
         ...style,
       }}
@@ -136,7 +134,7 @@ function TextInput({ value, onChange, placeholder, autoFocus, type = 'text', inp
   );
 }
 
-function Sheet({ open, onClose, children, title, height = 'auto' }) {
+function Sheet({ open, onClose, children, title }) {
   if (!open) return null;
   return (
     <div style={{

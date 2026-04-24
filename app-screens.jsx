@@ -52,17 +52,8 @@ function ColorPicker({ value, onChange }) {
   );
 }
 
-// ─── Target (sets × reps) helpers ───────────────────────────
-function formatTarget(target) {
-  if (!target) return '';
-  const hasSets = target.sets != null && target.sets !== '';
-  const hasReps = target.reps != null && target.reps !== '';
-  if (!hasSets && !hasReps) return '';
-  if (hasSets && hasReps) return `${target.sets} × ${target.reps}`;
-  if (hasSets) return `${target.sets} sets`;
-  return target.reps;
-}
-
+// ─── Target (sets × reps) editor ────────────────────────────
+// formatTarget() lives in app-theme.jsx so app-workout can share it.
 function EditTargetSheet({ open, target, exerciseName, accent, onClose, onSave }) {
   const [sets, setSets] = React.useState('');
   const [reps, setReps] = React.useState('');
@@ -144,6 +135,40 @@ function TargetInputPair({ label, value, onChange, freeText }) {
   );
 }
 
+// ─── "Workout in progress" confirm sheet (shared) ──────────
+// Shown when the user taps Start on a routine while another session is live.
+// The caller decides whether resumption/start uses nav.push or nav.replace.
+function ConfirmStartSheet({ open, active, target, onClose, onResume, onDiscardAndStart }) {
+  const s = useStore();
+  if (!open || !active || !target) return null;
+  const ar = selectors.routineById(s, active.routineId);
+  const setCount = active.entries.reduce((a, e) => a + e.sets.length, 0);
+  return (
+    <Sheet open={open} onClose={onClose} title="Workout in progress">
+      <div style={{ padding: '0 20px' }}>
+        <div style={{ fontSize: 14, color: TOKENS.muted, marginBottom: 16, lineHeight: 1.5 }}>
+          You have a <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{ar?.name || 'workout'}</b> in progress
+          {setCount > 0 ? ` with ${setCount} set${setCount === 1 ? '' : 's'} logged` : ''}.
+          Starting <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{target.name}</b> will discard it.
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            onClick={onResume}
+            style={{
+              height: 46, borderRadius: 12, background: TOKENS.ink, color: TOKENS.bg,
+              border: 'none', fontFamily: TOKENS.font, fontSize: 14.5, fontWeight: 700,
+              letterSpacing: 0.2, textTransform: 'uppercase', cursor: 'pointer',
+            }}>Resume current</button>
+          <SecondaryButton onClick={onDiscardAndStart} style={{ color: TOKENS.danger }}>
+            Discard & start {target.name}
+          </SecondaryButton>
+          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
 // ─── Routines (Home) ────────────────────────────────────────
 function RoutinesScreen({ nav }) {
   const s = useStore();
@@ -191,12 +216,6 @@ function RoutinesScreen({ nav }) {
     nav.push({ name: 'workout', sessionId: sess.id });
   };
 
-  const weekCount = React.useMemo(() => {
-    const now = new Date();
-    const start = new Date(now); start.setDate(now.getDate() - now.getDay());
-    start.setHours(0,0,0,0);
-    return s.sessions.filter(x => x.finishedAt && new Date(x.date) >= start).length;
-  }, [s.sessions]);
 
   return (
     <Screen>
@@ -222,7 +241,7 @@ function RoutinesScreen({ nav }) {
           </button>
         } />
       <div style={{ flex: 1, overflow: 'auto', paddingBottom: 20 }}>
-        <LargeTitle eyebrow={weekCount > 0 ? `${weekCount} this week` : 'Let\u2019s go'}>Routines</LargeTitle>
+        <LargeTitle>Routines</LargeTitle>
 
         {active && (() => {
           const ar = selectors.routineById(s, active.routineId);
@@ -344,45 +363,23 @@ function RoutinesScreen({ nav }) {
 
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} store={s} />
 
-      <Sheet open={!!confirmStart} onClose={() => setConfirmStart(null)} title="Workout in progress">
-        {confirmStart && active && (() => {
-          const ar = selectors.routineById(s, active.routineId);
-          const setCount = active.entries.reduce((a, e) => a + e.sets.length, 0);
-          return (
-            <div style={{ padding: '0 20px' }}>
-              <div style={{ fontSize: 14, color: TOKENS.muted, marginBottom: 16, lineHeight: 1.5 }}>
-                You have a <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{ar?.name || 'workout'}</b> in progress
-                {setCount > 0 ? ` with ${setCount} set${setCount === 1 ? '' : 's'} logged` : ''}.
-                Starting <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{confirmStart.name}</b> will discard it.
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button
-                  onClick={() => {
-                    setConfirmStart(null);
-                    nav.push({ name: 'workout', sessionId: active.id });
-                  }}
-                  style={{
-                    height: 46, borderRadius: 12, background: TOKENS.ink, color: TOKENS.bg,
-                    border: 'none', fontFamily: TOKENS.font, fontSize: 14.5, fontWeight: 700,
-                    letterSpacing: 0.2, textTransform: 'uppercase', cursor: 'pointer',
-                  }}>Resume current</button>
-                <SecondaryButton
-                  onClick={() => {
-                    const r = confirmStart;
-                    setConfirmStart(null);
-                    actions.deleteSession(active.id);
-                    const sess = actions.createSession(r.id);
-                    nav.push({ name: 'workout', sessionId: sess.id });
-                  }}
-                  style={{ color: TOKENS.danger }}>
-                  Discard & start {confirmStart.name}
-                </SecondaryButton>
-                <SecondaryButton onClick={() => setConfirmStart(null)}>Cancel</SecondaryButton>
-              </div>
-            </div>
-          );
-        })()}
-      </Sheet>
+      <ConfirmStartSheet
+        open={!!confirmStart}
+        active={active}
+        target={confirmStart}
+        onClose={() => setConfirmStart(null)}
+        onResume={() => {
+          setConfirmStart(null);
+          nav.push({ name: 'workout', sessionId: active.id });
+        }}
+        onDiscardAndStart={() => {
+          const r = confirmStart;
+          setConfirmStart(null);
+          actions.deleteSession(active.id);
+          const sess = actions.createSession(r.id);
+          nav.push({ name: 'workout', sessionId: sess.id });
+        }}
+      />
     </Screen>
   );
 }
@@ -482,6 +479,8 @@ function RoutineScreen({ nav, routineId }) {
   const [editingName, setEditingName] = React.useState(false);
   const [name, setName] = React.useState(routine?.name || '');
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [editingTarget, setEditingTarget] = React.useState(null);
+  const [confirmStart, setConfirmStart] = React.useState(false);
 
   React.useEffect(() => { setName(routine?.name || ''); }, [routine?.name]);
 
@@ -491,8 +490,6 @@ function RoutineScreen({ nav, routineId }) {
   const exerciseRows = routine.exercises
     .map(x => ({ target: x, ex: selectors.exerciseById(s, x.exerciseId) }))
     .filter(r => r.ex);
-  const [editingTarget, setEditingTarget] = React.useState(null);
-  const [confirmStart, setConfirmStart] = React.useState(false);
   const active = selectors.activeSession(s);
 
   const saveName = () => {
@@ -703,44 +700,22 @@ function RoutineScreen({ nav, routineId }) {
         </div>
       </Sheet>
 
-      <Sheet open={confirmStart} onClose={() => setConfirmStart(false)} title="Workout in progress">
-        {active && (() => {
-          const ar = selectors.routineById(s, active.routineId);
-          const setCount = active.entries.reduce((a, e) => a + e.sets.length, 0);
-          return (
-            <div style={{ padding: '0 20px' }}>
-              <div style={{ fontSize: 14, color: TOKENS.muted, marginBottom: 16, lineHeight: 1.5 }}>
-                You have a <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{ar?.name || 'workout'}</b> in progress
-                {setCount > 0 ? ` with ${setCount} set${setCount === 1 ? '' : 's'} logged` : ''}.
-                Starting <b style={{ color: TOKENS.ink, fontWeight: 600 }}>{routine.name}</b> will discard it.
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button
-                  onClick={() => {
-                    setConfirmStart(false);
-                    nav.replace({ name: 'workout', sessionId: active.id });
-                  }}
-                  style={{
-                    height: 46, borderRadius: 12, background: TOKENS.ink, color: TOKENS.bg,
-                    border: 'none', fontFamily: TOKENS.font, fontSize: 14.5, fontWeight: 700,
-                    letterSpacing: 0.2, textTransform: 'uppercase', cursor: 'pointer',
-                  }}>Resume current</button>
-                <SecondaryButton
-                  onClick={() => {
-                    setConfirmStart(false);
-                    actions.deleteSession(active.id);
-                    const sess = actions.createSession(routine.id);
-                    nav.replace({ name: 'workout', sessionId: sess.id });
-                  }}
-                  style={{ color: TOKENS.danger }}>
-                  Discard & start {routine.name}
-                </SecondaryButton>
-                <SecondaryButton onClick={() => setConfirmStart(false)}>Cancel</SecondaryButton>
-              </div>
-            </div>
-          );
-        })()}
-      </Sheet>
+      <ConfirmStartSheet
+        open={confirmStart}
+        active={active}
+        target={routine}
+        onClose={() => setConfirmStart(false)}
+        onResume={() => {
+          setConfirmStart(false);
+          nav.replace({ name: 'workout', sessionId: active.id });
+        }}
+        onDiscardAndStart={() => {
+          setConfirmStart(false);
+          actions.deleteSession(active.id);
+          const sess = actions.createSession(routine.id);
+          nav.replace({ name: 'workout', sessionId: sess.id });
+        }}
+      />
     </Screen>
   );
 }
@@ -818,4 +793,4 @@ function ExercisePicker({ open, onClose, excludeIds = [], onPick, accent }) {
   );
 }
 
-Object.assign(window, { BottomNav, RoutinesScreen, RoutineScreen, ExercisePicker, ColorPicker });
+Object.assign(window, { BottomNav, RoutinesScreen, RoutineScreen });

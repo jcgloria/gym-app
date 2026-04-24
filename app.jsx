@@ -57,20 +57,6 @@ function isStandalone() {
 function Root() {
   const [standalone] = React.useState(isStandalone);
 
-  const [size, setSize] = React.useState(() => computeSize());
-  React.useEffect(() => {
-    const on = () => setSize(computeSize());
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
-  }, []);
-  function computeSize() {
-    const w = window.innerWidth, h = window.innerHeight;
-    const targetW = 390, targetH = 844;
-    const pad = 24;
-    const scale = Math.min(1, (w - pad * 2) / targetW, (h - pad * 2) / targetH);
-    return { scale, targetW, targetH };
-  }
-
   if (standalone) {
     return (
       <div style={{ width: '100%', height: '100%', background: TOKENS.bg }}>
@@ -78,6 +64,24 @@ function Root() {
       </div>
     );
   }
+  return <FramedPreview />;
+}
+
+// iOS-device mockup shown on desktop. Scales to fit the viewport.
+function FramedPreview() {
+  const computeSize = () => {
+    const w = window.innerWidth, h = window.innerHeight;
+    const targetW = 390, targetH = 844;
+    const pad = 24;
+    const scale = Math.min(1, (w - pad * 2) / targetW, (h - pad * 2) / targetH);
+    return { scale, targetW, targetH };
+  };
+  const [size, setSize] = React.useState(computeSize);
+  React.useEffect(() => {
+    const on = () => setSize(computeSize());
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
 
   return (
     <div style={{
@@ -85,10 +89,7 @@ function Root() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       overflow: 'hidden',
     }}>
-      <div style={{
-        transform: `scale(${size.scale})`,
-        transformOrigin: 'center center',
-      }}>
+      <div style={{ transform: `scale(${size.scale})`, transformOrigin: 'center center' }}>
         <IOSDevice width={size.targetW} height={size.targetH}>
           <App />
         </IOSDevice>

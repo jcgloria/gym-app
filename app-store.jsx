@@ -32,15 +32,9 @@ function saveState(s) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
 }
 
-// No seed data — app starts empty.
-function maybeSeed(s) {
-  localStorage.setItem(STORAGE_KEY + ':seeded', '1');
-  return s;
-}
-
 // Single global store w/ React hook subscription
 const listeners = new Set();
-let state = maybeSeed(loadState());
+let state = loadState();
 saveState(state);
 
 function setState(updater) {
@@ -145,12 +139,6 @@ const actions = {
         x.id === sessionId ? { ...x, finishedAt: new Date().toISOString() } : x),
     }));
   },
-  updateSession: (sessionId, patch) => {
-    setState(s => ({
-      ...s,
-      sessions: s.sessions.map(x => x.id === sessionId ? { ...x, ...patch } : x),
-    }));
-  },
   addSet: (sessionId, exerciseId, setData) => {
     setState(s => ({
       ...s,
@@ -202,8 +190,7 @@ const actions = {
   },
   resetAll: () => {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STORAGE_KEY + ':seeded');
-    state = maybeSeed(defaultState());
+    state = defaultState();
     saveState(state);
     listeners.forEach(fn => fn());
   },
@@ -222,7 +209,6 @@ const selectors = {
   routineById: (s, id) => s.routines.find(r => r.id === id),
   sessionById: (s, id) => s.sessions.find(x => x.id === id),
   activeSession: (s) => s.sessions.find(x => !x.finishedAt) || null,
-  finishedSessions: (s) => s.sessions.filter(x => x.finishedAt),
   // Previous N finished sessions that include this exercise (excluding current)
   lastSessionsFor: (s, exerciseId, excludeSessionId, n = 3) => {
     return s.sessions
@@ -231,14 +217,6 @@ const selectors = {
       .filter(x => x.entries.some(e => e.exerciseId === exerciseId && e.sets.length > 0))
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, n);
-  },
-  sessionsByDay: (s) => {
-    const map = {};
-    s.sessions.filter(x => x.finishedAt).forEach(x => {
-      const key = x.date.slice(0, 10);
-      (map[key] ||= []).push(x);
-    });
-    return map;
   },
 };
 
@@ -264,4 +242,4 @@ const fmt = {
   },
 };
 
-Object.assign(window, { useStore, actions, selectors, fmt, uid });
+Object.assign(window, { useStore, actions, selectors, fmt });

@@ -34,4 +34,15 @@ function getRoutineColor(id) {
   return ROUTINE_COLORS.find(c => c.id === id) || ROUTINE_COLORS[0];
 }
 
-Object.assign(window, { TOKENS, ROUTINE_COLORS, getRoutineColor });
+// Render a routine target ({ sets, reps }) as "4 × 6-8", "max", "3 sets", or '' if blank.
+function formatTarget(target) {
+  if (!target) return '';
+  const hasSets = target.sets != null && target.sets !== '';
+  const hasReps = target.reps != null && target.reps !== '';
+  if (hasSets && hasReps) return `${target.sets} × ${target.reps}`;
+  if (hasSets) return `${target.sets} sets`;
+  if (hasReps) return String(target.reps);
+  return '';
+}
+
+Object.assign(window, { TOKENS, ROUTINE_COLORS, getRoutineColor, formatTarget });

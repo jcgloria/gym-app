@@ -3,12 +3,13 @@
 function WorkoutScreen({ nav, sessionId }) {
   const s = useStore();
   const session = selectors.sessionById(s, sessionId);
+  const [active, setActive] = React.useState(() => session?.entries[0]?.exerciseId || null);
+  const [finishOpen, setFinishOpen] = React.useState(false);
+
   if (!session) return <Screen><TopBar title="Not found" onBack={() => nav.pop()} /></Screen>;
 
   const routine = selectors.routineById(s, session.routineId);
   const c = getRoutineColor(routine?.color || session.color);
-  const [active, setActive] = React.useState(session.entries[0]?.exerciseId || null);
-  const [finishOpen, setFinishOpen] = React.useState(false);
 
   const totalSets = session.entries.reduce((a, e) => a + e.sets.length, 0);
 
@@ -119,11 +120,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
     actions.addSet(session.id, entry.exerciseId, { weight: w, reps: r });
   };
 
-  const targetLabel = target ? (
-    (target.sets != null && target.reps != null && target.reps !== '')
-      ? `${target.sets} × ${target.reps}`
-      : target.reps != null && target.reps !== '' ? String(target.reps) : ''
-  ) : '';
+  const targetLabel = formatTarget(target);
 
   const setCount = entry.sets.length;
   const lastSet = prevSessions[0]?.entries.find(e => e.exerciseId === entry.exerciseId)?.sets[0];
@@ -262,8 +259,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
               color: color.ink, marginBottom: 10,
             }}>Today · {setCount} {setCount === 1 ? 'set' : 'sets'}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {entry.sets.map((st, i) => {
-                return (
+              {entry.sets.map((st, i) => (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '10px 14px',
@@ -304,8 +300,7 @@ function ExerciseBlock({ session, entry, open, onToggle, color, target }) {
                       }}
                     ><Icon.close /></button>
                   </div>
-                );
-              })}
+              ))}
             </div>
           </div>
         )}
@@ -413,8 +408,7 @@ function ExercisesScreen({ nav }) {
           />
         ) : (
           <div style={{ padding: '0 16px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {filtered.map(e => {
-              return (
+            {filtered.map(e => (
                 <div key={e.id} style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   background: TOKENS.surface, border: `1px solid ${TOKENS.line}`,
@@ -432,8 +426,7 @@ function ExercisesScreen({ nav }) {
                     }}
                   ><Icon.trash /></button>
                 </div>
-              );
-            })}
+            ))}
           </div>
         )}
       </div>
@@ -496,28 +489,11 @@ function HistoryScreen({ nav }) {
     setViewMonth(m);
   };
 
-  // Streak count (consecutive days with workouts ending today or yesterday)
-  const streak = React.useMemo(() => {
-    const dayKeys = new Set(s.sessions.filter(x => x.finishedAt).map(x => x.date.slice(0, 10)));
-    let n = 0;
-    const d = new Date(); d.setHours(0,0,0,0);
-    // Allow starting from yesterday (rest day today is ok)
-    let cur = new Date(d);
-    if (!dayKeys.has(cur.toISOString().slice(0, 10))) {
-      cur.setDate(cur.getDate() - 1);
-    }
-    while (dayKeys.has(cur.toISOString().slice(0, 10))) {
-      n++;
-      cur.setDate(cur.getDate() - 1);
-    }
-    return n;
-  }, [s.sessions]);
-
   return (
     <Screen>
       <TopBar title="" />
       <div style={{ flex: 1, overflow: 'auto', paddingBottom: 20 }}>
-        <LargeTitle eyebrow={streak > 0 ? `🔥 ${streak}-day streak` : `${sorted.length} workout${sorted.length === 1 ? '' : 's'}`}>History</LargeTitle>
+        <LargeTitle>History</LargeTitle>
 
         <div style={{ padding: '0 16px 20px' }}>
           <Card style={{ padding: 16 }}>
@@ -587,9 +563,6 @@ function HistoryScreen({ nav }) {
             {sorted.map(sess => {
               const routine = selectors.routineById(s, sess.routineId);
               const c = getRoutineColor(routine?.color || sess.color);
-              const totalSets = sess.entries.reduce((a, e) => a + e.sets.length, 0);
-              const volume = sess.entries.reduce((a, e) =>
-                a + e.sets.reduce((b, st) => b + st.weight * st.reps, 0), 0);
               return (
                 <div key={sess.id} onClick={() => nav.push({ name: 'session', sessionId: sess.id })}
                   style={{
@@ -612,11 +585,8 @@ function HistoryScreen({ nav }) {
                     </div>
                     <div style={{ width: 1, alignSelf: 'stretch', background: TOKENS.line }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: -0.2, marginBottom: 3, color: TOKENS.ink }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: -0.2, color: TOKENS.ink }}>
                         {routine?.name || 'Workout'}
-                      </div>
-                      <div style={{ fontSize: 12.5, color: TOKENS.muted, fontVariantNumeric: 'tabular-nums' }}>
-                        {totalSets} sets  ·  {Math.round(volume).toLocaleString()} lb volume
                       </div>
                     </div>
                     <div style={{ color: TOKENS.subtle }}><Icon.chevron /></div>
@@ -638,9 +608,6 @@ function SessionDetailScreen({ nav, sessionId }) {
   if (!sess) return <Screen><TopBar title="Not found" onBack={() => nav.pop()} /></Screen>;
   const routine = selectors.routineById(s, sess.routineId);
   const c = getRoutineColor(routine?.color || sess.color);
-  const totalSets = sess.entries.reduce((a, e) => a + e.sets.length, 0);
-  const volume = sess.entries.reduce((a, e) =>
-    a + e.sets.reduce((b, st) => b + st.weight * st.reps, 0), 0);
 
   return (
     <Screen>
@@ -669,12 +636,6 @@ function SessionDetailScreen({ nav, sessionId }) {
             fontSize: 34, fontWeight: 700, letterSpacing: -1.2, lineHeight: 1.05,
             color: TOKENS.ink,
           }}>{routine?.name || 'Workout'}</div>
-        </div>
-
-        <div style={{ padding: '0 16px 16px', display: 'flex', gap: 8 }}>
-          <StatBox label="Sets" value={totalSets} />
-          <StatBox label="Exercises" value={sess.entries.filter(e => e.sets.length > 0).length} />
-          <StatBox label="Volume" value={Math.round(volume).toLocaleString()} suffix="lb" />
         </div>
 
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -721,27 +682,6 @@ function SessionDetailScreen({ nav, sessionId }) {
         </div>
       </div>
     </Screen>
-  );
-}
-
-function StatBox({ label, value, suffix }) {
-  return (
-    <div style={{
-      flex: 1, background: TOKENS.surface, border: `1px solid ${TOKENS.line}`,
-      borderRadius: 12, padding: '12px 14px',
-    }}>
-      <div style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: 1.2,
-        textTransform: 'uppercase', color: TOKENS.subtle, marginBottom: 4,
-      }}>{label}</div>
-      <div style={{
-        fontFamily: TOKENS.fontDisplay,
-        fontSize: 24, fontWeight: 600, letterSpacing: -0.6,
-        fontVariantNumeric: 'tabular-nums', color: TOKENS.ink,
-      }}>
-        {value}{suffix && <span style={{ fontSize: 11, fontWeight: 500, color: TOKENS.muted, marginLeft: 3, fontFamily: TOKENS.font, letterSpacing: 0 }}>{suffix}</span>}
-      </div>
-    </div>
   );
 }
 
